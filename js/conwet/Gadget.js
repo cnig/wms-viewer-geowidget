@@ -33,14 +33,14 @@ conwet.Gadget = Class.create({
 
         this.locationSlot      = new conwet.events.Slot('location_slot',      this.setMarker.bind(this));
         this.locationInfoSlot  = new conwet.events.Slot('location_info_slot', function(location) {
-            location = location.evalJSON();
+            location = JSON.parse(location);
             if (typeof location == 'object') {
                 this.setInfoMarker(location);
             }
         }.bind(this));
 
         this.wmsServiceSlot    = new conwet.events.Slot('wms_service_slot', function(service) {
-            service = service.evalJSON();
+            service = JSON.parse(service);            
             if (typeof service == 'object') {
                 if (('type' in service) && ('url' in service) && ('name' in service) && (service.type == "WMS") && (service.url != "")) {
                     this.addWmsService(service);

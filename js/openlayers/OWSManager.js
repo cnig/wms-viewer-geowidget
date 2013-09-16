@@ -155,7 +155,7 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
     },
 
     addWmsService: function(name, url) {
-        this.serverSelect.addOption(name, url, {"removable": true});
+        this.serverSelect.addEntries([{label: name, value: url}]);
         this.gadget.showMessage(_("Nuevo servidor añadido."));
     },
 
