@@ -271,7 +271,7 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
         var layerSelect = new StyledElements.StyledSelect({idFun: function(layer) {
                 return layer.getName();
             }});
-        layerSelect.addEventListener('change', function(select) {
+        var showtable = function(select) {
             
             var layer = JSON.parse(select.getValue());            
             var layerInfo = service.getLayer(layer.layer.name);
@@ -301,7 +301,9 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
             imageFormatSelect.clear();
             this._addProjections(projectionSelect, JSON.parse(layerSelect.getValue()).projections);
             this._addFormats(imageFormatSelect, layer.formats);
-        }.bind(this));
+        }.bind(this);
+        
+        layerSelect.addEventListener('change', showtable); 
 
         var layers = service.getLayers();
         for (var i = 0; i < layers.length; i++) {
@@ -360,7 +362,7 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
         this.serverForm.appendChild(document.createTextNode('Image Format'));
         imageFormatSelect.textDiv.hide();
         imageFormatSelect.insertInto(this.serverForm);
-        
+        showtable(layerSelect);
         this.serverForm.appendChild(baseLayerButton);
         this.serverForm.appendChild(baseLayerLabel);
         this.serverForm.appendChild(addButton);
