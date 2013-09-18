@@ -109,10 +109,13 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
 
         this.tabsElements.push({"button": serversButton, "container": serversContainer});
 
+        serversContainer.appendChild(document.createTextNode("WMS Server"));
+        
         this.serverSelect = new StyledElements.StyledSelect();
-        this.serverSelect.addEventListener('change', this._sendGetCapabilities.bind(this));
+        this.serverSelect.textDiv.hide();
+        this.serverSelect.addEventListener('change', this._sendGetCapabilities.bind(this));        
         this.serverSelect.insertInto(serversContainer);
-        this.serverSelect.addEntries([[_('Select a server'), '']]);
+        this.serverSelect.addEntries([{label:_('Select a server'), value:''}]);
 
         for (var i = 0; i < this.initialServers.length; i++) {
             this.serverSelect.addEntries([[this.initialServers[i][0], this.initialServers[i][1]]]);
@@ -216,7 +219,7 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
             this.wmsManager.addService(baseURL, a);
             this._drawServersForm(baseURL);
         } else {
-            this.gadget.showError(_("Servicio no disponible."));
+            this.gadget.showError(_('Incorrect content: check your WMS url'));
         }
 
         /*
@@ -260,16 +263,17 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
         // Projection select
         var projectionSelect = new StyledElements.StyledSelect();
         projectionSelect.addClassName("no_display");
-
+        
         // Image type select
         var imageFormatSelect = new StyledElements.StyledSelect();
 
         // Layer select
         var layerSelect = new StyledElements.StyledSelect({idFun: function(layer) {
-                return layer.layer.name;
+                return layer.getName();
             }});
         layerSelect.addEventListener('change', function(select) {
-            var layer = JSON.parse(select.getValue());
+            
+            var layer = JSON.parse(select.getValue());            
             var layerInfo = service.getLayer(layer.layer.name);
             infoDiv.innerHTML = "";
 
@@ -345,14 +349,24 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
         addButton.appendChild(document.createTextNode(_('Add layer')));
 
         // Create UI
+        this.serverForm.appendChild(document.createTextNode('Layer'));
+        layerSelect.textDiv.hide();
         layerSelect.insertInto(this.serverForm);
+        
+        //this.serverForm.appendChild(document.createTextNode('Projection'));
+        projectionSelect.textDiv.hide();
         projectionSelect.insertInto(this.serverForm);
+        
+        this.serverForm.appendChild(document.createTextNode('Image Format'));
+        imageFormatSelect.textDiv.hide();
         imageFormatSelect.insertInto(this.serverForm);
+        
         this.serverForm.appendChild(baseLayerButton);
         this.serverForm.appendChild(baseLayerLabel);
         this.serverForm.appendChild(addButton);
         this.serverForm.appendChild(infoDiv);
     },
+            
     _addProjections: function(select, projections) {
         select.clear();
         for (var i = 0; i < projections.length; i++) {
