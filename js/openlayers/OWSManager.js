@@ -261,8 +261,7 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
         $(infoDiv).addClassName("layer_info");
 
         // Projection select
-        var projectionSelect = new StyledElements.StyledSelect();
-        projectionSelect.addClassName("no_display");
+        var projectionSelect = new StyledElements.StyledSelect();        
         
         // Image type select
         var imageFormatSelect = new StyledElements.StyledSelect();
@@ -271,6 +270,8 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
         var layerSelect = new StyledElements.StyledSelect({idFun: function(layer) {
                 return layer.getName();
             }});
+        
+        //Function that shows a table with data about the WMS Service
         var showtable = function(select) {
             
             var layer = JSON.parse(select.getValue());            
@@ -318,6 +319,10 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
 
         // Add formats
         this._addFormats(imageFormatSelect, b.formats);
+        
+        //Label containing "Projection"
+        var projectionDiv = document.createElement('div');
+        projectionDiv.addClassName("no_display");
 
         // Base layer checkbox
         var baseLayerButton = document.createElement('input');
@@ -327,10 +332,10 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
         baseLayerButton.observe("mousedown", function(e) {
             baseLayerButton.checked = !baseLayerButton.checked;
             if (baseLayerButton.checked) {
-                projectionSelect.removeClassName("no_display");
+                projectionDiv.removeClassName("no_display");                
             }
             else {
-                projectionSelect.addClassName("no_display");
+                projectionDiv.addClassName("no_display");                
             }
         }.bind(this));
 
@@ -353,11 +358,13 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
         // Create UI
         this.serverForm.appendChild(document.createTextNode('Layer'));
         layerSelect.textDiv.hide();
-        layerSelect.insertInto(this.serverForm);
+        layerSelect.insertInto(this.serverForm);        
         
-        //this.serverForm.appendChild(document.createTextNode('Projection'));
+        
+        projectionDiv.appendChild(document.createTextNode('Projection'));
         projectionSelect.textDiv.hide();
-        projectionSelect.insertInto(this.serverForm);
+        projectionSelect.insertInto(projectionDiv);
+        this.serverForm.appendChild(projectionDiv);
         
         this.serverForm.appendChild(document.createTextNode('Image Format'));
         imageFormatSelect.textDiv.hide();
