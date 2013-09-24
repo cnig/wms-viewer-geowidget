@@ -11,8 +11,7 @@
  * Modified by jmostazo (CoNWeT, UPM)
  */
 
-OpenLayers.Control.OWSManager = OpenLayers.Class.create();
-OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Control, {
+OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
     initialize: function(mapManager, initialServers) {
         OpenLayers.Control.prototype.initialize.apply(this);
 
@@ -178,6 +177,7 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
 
         //TODO Gif chulo para esperar
         MashupPlatform.http.makeRequest(baseURL, {
+            method: 'GET',
             onSuccess: function(response) {
                 this.gadget.hideMessage();
                 this._parseGetCapabilities(baseURL, response);
@@ -435,10 +435,11 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
         this.showTab(this.TAB_LAYERS);
 
         this.selectedLayersManager.addLayer(new OpenLayers.Layer.WMS(layer.layer.name, url, {
-            "layers": layer.layer.name,
-            "format": imageType,
-            "TRANSPARENT": ("" + !isBaseLayer).toUpperCase(),
-            "EXCEPTIONS": 'application/vnd.ogc.se_inimage'
+            layers: layer.layer.name,
+            format: imageType,
+            TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
+            EXCEPTIONS: 'application/vnd.ogc.se_inimage',
+            projection :  new OpenLayers.Projection(this.map.projection)
         }), projection, isBaseLayer);
     },
     /*addMarkerLayer: function(layer) {
@@ -460,7 +461,7 @@ OpenLayers.Control.OWSManager.prototype = OpenLayers.Class.inherit(OpenLayers.Co
 });
 
 /** Sarissa derived getParseErrorText
- */
+ 
 OpenLayers.Ajax.PARSED_OK = "Document contains no parsing errors";
 OpenLayers.Ajax.PARSED_EMPTY = "Document is empty";
 OpenLayers.Ajax.PARSED_UNKNOWN_ERROR = "Not well-formed or other error";

@@ -133,12 +133,16 @@ conwet.map.SelectedLayersManager = Class.create({
             };
 
             inputElement.observe("mousedown", function(e) {
-                if (inputElement.type == "radio") {
-                    this._changeBaseLayer(layerObj);
-                    this._zoomToExtent(layerObj.layerInfo);
-                } else {
-                    layerObj.inputElement.checked = !layerObj.inputElement.checked;
-                    layerObj.layer.setVisibility(layerObj.inputElement.checked, true);
+                if(inputElement.disabled == false){
+                    if (inputElement.type == "radio") {
+                        this._changeBaseLayer(layerObj);
+                        this._zoomToExtent(layerObj.layerInfo);
+                        this._changeMapProjection(layerInfo, this.map.projection);
+                        
+                    } else {
+                        layerObj.inputElement.checked = (!layerObj.inputElement.checked);                                           
+                    }
+                    this._disableOverlays();
                 }
                 e.stop();
             }.bind(this));
@@ -252,14 +256,19 @@ conwet.map.SelectedLayersManager = Class.create({
                 this._selectBaseLayerElement(layerObj.layerElement);
                 this._updateOverlaysProjection(layerObj.projection);
                 this.map.events.triggerEvent("changebaselayer");
+                layerObj.inputElement.checked = true;
+                
             }
             else {
                 this.map.setLayerIndex(layer, this.map.getNumLayers()-this.mapManager.getNumMarkerLayers()-1);
+                layerObj.inputElement.checked = true;
             }
+
+            
 
             list.push(layerObj);
             this._disableOverlays();
-            layerObj.inputElement.checked = true;
+            
             if (!init)
                 this.gadget.showMessage((isBaseLayer)? _("Nueva capa base."): _("Nueva capa."));
         }
@@ -331,9 +340,10 @@ conwet.map.SelectedLayersManager = Class.create({
                     "layers": layer.params.LAYERS,
                     "format": layer.params.FORMAT,
                     "TRANSPARENT": "TRUE",
-                    "EXCEPTIONS": "application/vnd.ogc.se_inimage"
+                    "EXCEPTIONS": "application/vnd.ogc.se_inimage",
+                    projection :  new OpenLayers.Projection(this.map.projection)
                 });
-
+                
                 layerObj.projection = projection;
                 layerObj.layer = newLayer;
 
@@ -357,9 +367,14 @@ conwet.map.SelectedLayersManager = Class.create({
 
             if (this.map.projection in layerObj.layerInfo.layer.bbox) {
                 layerObj.layerElement.removeClassName("disabled_layer");
+                layerObj.inputElement.disabled = false;
+                layerObj.layer.setVisibility(layerObj.inputElement.checked, true);                
             }
-            else {
+            else {                
                 layerObj.layerElement.addClassName("disabled_layer");
+                layerObj.inputElement.disabled = true;
+                layerObj.inputElement.checked = false;
+                layerObj.layer.setVisibility(false, true);                
             }
         }
     },
