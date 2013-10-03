@@ -55,7 +55,7 @@ conwet.map.OsmLayer = Class.create({
     },
 
     getExtent: function(srs) {
-        return new OpenLayers.Bounds(-20037508.3392, -20037508.3392, 20037508.3392, 20037508.3392);
+        return new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34, 20037508.34);
     },
 
     getAtribution: function() {

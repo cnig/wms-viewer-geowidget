@@ -25,30 +25,35 @@
 use("conwet.map");
 
 conwet.map.MapManager = Class.create({
-
     initialize: function(gadget, options) {
         this.transformer = new conwet.map.ProjectionTransformer();
         this.gadget = gadget;
         this.map = new OpenLayers.Map({
-            'div'              : 'map',
-            'panMethod'        : null,
-            'controls'         : [],
-            "displayProjection": new OpenLayers.Projection("EPSG:4326"),
-            "numZoomLevels"    : 19
+            div: 'map',
+            panMethod: null,
+            controls: [],
+            displayProjection: new OpenLayers.Projection("EPSG:4326"),
+            numZoomLevels: 19,
+            zoomDuration: 10,
+            maxResolution: 'auto',
+            minResolution: 'auto',
+            maxExtent: 'auto'
+            
         });
 
         this.transformer.setMap(this.map);
 
         // Init
-        this.isDrag    = false;
-        this.zoomLevel = -1;
-        this.center    = new OpenLayers.LonLat(-1, -1);
+        this.isDrag = false;
+        this.zoomLevel = 0;
+        this.center = new OpenLayers.LonLat(-1, -1);
 
-        this.mousePosition = new OpenLayers.Control.MousePosition({"formatOutput": function (lonLat) {
-            var ns = OpenLayers.Util.getFormattedLonLat(lonLat.lat);
-            var ew = OpenLayers.Util.getFormattedLonLat(lonLat.lon,'lon');
-            return ns + ', ' + ew;
-        }});
+        //This displays the coordenates where the mouse is located in the map
+        this.mousePosition = new OpenLayers.Control.MousePosition({"formatOutput": function(lonLat) {
+                var ns = OpenLayers.Util.getFormattedLonLat(lonLat.lat);
+                var ew = OpenLayers.Util.getFormattedLonLat(lonLat.lon, 'lon');
+                return ns + ', ' + ew;
+            }});
         this.map.addControl(this.mousePosition);
 
         this.map.addControl(new OpenLayers.Control.PanPanel());
@@ -59,6 +64,15 @@ conwet.map.MapManager = Class.create({
 
         // OWSManager
         var initialServers = [];
+
+        //The last registered services
+        var servicesPreference = MashupPlatform.widget.getVariable("services");
+
+
+        //If there where services registered before we load them in the services catalogue
+        if (servicesPreference.get() != "") {
+            initialServers = JSON.parse(servicesPreference.get());
+        }
 
         this.owsManager = new OpenLayers.Control.OWSManager(this, initialServers);
         this.map.addControl(this.owsManager);
@@ -81,7 +95,7 @@ conwet.map.MapManager = Class.create({
 
         options['onSetZoom'] = this.setZoom.bind(this);
         options['onZoomOut'] = this.zoomOut.bind(this);
-        options['onZoomIn']  = this.zoomIn.bind(this);
+        options['onZoomIn'] = this.zoomIn.bind(this);
 
         // MarkerManager
         this.markerManager = new conwet.map.MarkerManager(this.map);
@@ -128,13 +142,12 @@ conwet.map.MapManager = Class.create({
                 this.mousePosition.activate();
             }
         });
-        this.map.events.register('mouseout',  this.mousePosition, this.mousePosition.deactivate);
+        this.map.events.register('mouseout', this.mousePosition, this.mousePosition.deactivate); 
+        this._setZoomLevel(0);
     },
-
     getGadget: function() {
         return this.gadget;
     },
-
     updateState: function(state) {
         if ('zoom' in state) {
             this.setZoom(state.zoom);
@@ -143,88 +156,74 @@ conwet.map.MapManager = Class.create({
             this.setCenter(state.center.lon, state.center.lat);
         }
     },
-
     setCenter: function(lon, lat) {
         var center = this.transformer.transform(new OpenLayers.LonLat(lon, lat));
         if (!conwet.map.ProjectionTransformer.compareLonlat(this.center, center)) {
             this.map.setCenter(center, this.map.getZoom());
         }
     },
-
     setZoom: function(zoom) {
         this._setZoomLevel(Math.round(this.map.getNumZoomLevels() * zoom));
     },
-
     zoomIn: function() {
         this._setZoomLevel(this.zoomLevel + 1);
     },
-
     zoomOut: function() {
         this._setZoomLevel(this.zoomLevel - 1);
     },
-
     addWmsService: function(name, url) {
         this.owsManager.addWmsService(name, url);
     },
-
     _setZoomLevel: function(zoomLevel) {
-        zoomLevel = (zoomLevel < 0)? 0: zoomLevel;
-        zoomLevel = (zoomLevel >= this.map.getNumZoomLevels())? this.map.getNumZoomLevels()-1: zoomLevel;
+        zoomLevel = (zoomLevel < 0) ? 0 : zoomLevel;
+        zoomLevel = (zoomLevel >= this.map.getNumZoomLevels()) ? this.map.getNumZoomLevels() - 1 : zoomLevel;
 
         if (this.zoomLevel != zoomLevel) {
             this.map.zoomTo(zoomLevel);
         }
     },
-
     getLonLatFromPixel: function(x, y) {
         if (!this.map.baseLayer)
             return null
 
         return this.transformer.normalize(this.map.getLonLatFromPixel(new OpenLayers.Pixel(x, y)));
     },
-
     getPixelFromLonLat: function(lon, lat) {
         if (!this.map.baseLayer)
             return null
 
         return this.map.getPixelFromLonLat(this.transformer.transform(new OpenLayers.LonLat(lon, lat)));
     },
-
     _onMove: function(zoom) {
         // To overwrite
     },
-
     _onBeforeDrag: function() {
         // To overwrite
     },
-
     _onAfterDrag: function() {
         // To overwrite
     },
-
     setUserMarker: function(lon, lat, title, text) {
-        text  = (arguments.length > 4)? text:  "";
-        title = (arguments.length > 3)? title: "";
+        text = (arguments.length > 4) ? text : "";
+        title = (arguments.length > 3) ? title : "";
 
         this._setMarker(new OpenLayers.LonLat(lon, lat), title, text, OpenLayers.AdvancedMarker.USER_MARKER, true);
     },
-
     setEventMarker: function(lon, lat, title, text) {
-        text  = (arguments.length > 4)? text:  "";
-        title = (arguments.length > 3)? title: "";
+        text = (arguments.length > 4) ? text : "";
+        title = (arguments.length > 3) ? title : "";
 
         this._setMarker(this.transformer.transform(new OpenLayers.LonLat(lon, lat)), title, text, OpenLayers.AdvancedMarker.EVENT_MARKER, true);
     },
-
     setQueryMarker: function(lon, lat, title, text) {
-        text  = (arguments.length > 4)? text:  "";
-        title = (arguments.length > 3)? title: "";
+        text = (arguments.length > 4) ? text : "";
+        title = (arguments.length > 3) ? title : "";
 
         this._setMarker(this.transformer.transform(new OpenLayers.LonLat(lon, lat)), title, text, OpenLayers.AdvancedMarker.QUERY_MARKER, true);
     },
-
     _setMarker: function(lonlat, title, text, type, popup, onClick) {
-        onClick = (arguments.length > 6)? onClick: function(){};
+        onClick = (arguments.length > 6) ? onClick : function() {
+        };
 
         this.markerManager.setMarker(lonlat, title, text, type, popup, function(marker) {
             var ll = this.transformer.normalize(lonlat);
@@ -232,7 +231,6 @@ conwet.map.MapManager = Class.create({
             this.getGadget().sendLocation(ll.lon, ll.lat);
         }.bind(this));
     },
-
     getNumMarkerLayers: function() {
         return this.markerManager.getNumLayers();
     }

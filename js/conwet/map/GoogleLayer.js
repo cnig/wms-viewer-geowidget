@@ -22,24 +22,48 @@
  *
  */
 
-use('conwet.events');
+use("conwet.map");
 
-conwet.events.Slot = Class.create({
+conwet.map.GoogleLayer = Class.create({
 
-    initialize: function(name, handler) {
-        this.name    = name;
-        this.lastname = null;
-        this.handler = handler;
-        MashupPlatform.wiring.registerCallback(name, this._handler.bind(this));
+    initialize: function(layer) {
+        this.layer = layer;
     },
 
-    get: function() {
-        return this.lastname;
+    getName: function() {
+        return this.layer.name;
     },
 
-    _handler: function(message) {
-        this.lastname = this.name;
-        this.handler(message);
+    getTitle: function() {
+        return this.layer.name;
+    },
+
+    getAbstract: function() {
+        return null;
+    },
+
+    isQueryable: function() {
+        return false;
+    },
+
+    getProjections: function() {
+        return ["EPSG:900913"];
+    },
+
+    getFormats: function() {
+        return [];
+    },
+
+    getExtent: function(srs) {
+        return new OpenLayers.Bounds(-20037508.3392, -20037508.3392, 20037508.3392, 20037508.3392);
+    },
+
+    getAtribution: function() {
+        return this.layer.attribution;
+    },
+
+    getLegendUrl: function() {
+        return null;
     }
 
 });

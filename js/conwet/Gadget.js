@@ -54,7 +54,7 @@ conwet.Gadget = Class.create({
         this.gadgetInfoSlot.addEvent(this.gadgetInfoEvent);
 
         // Attributes
-        this.messageManager = new conwet.ui.MessageManager(3000);
+        this.messageManager = new conwet.ui.MessageManager(1000);
         this.transformer = new conwet.map.ProjectionTransformer();
 
         this.cursorManager = new conwet.ui.CursorManager({
@@ -71,12 +71,12 @@ conwet.Gadget = Class.create({
             'onAfterDrag'  : function() {
                 this.cursorManager.enableEvents();
             }.bind(this),
-            'initialZoom'  : 0.5,
+            'initialZoom'  : 0,
             'initialCenter' : {
                 'lon': 0,
                 'lat': 0
             }
-        });
+        });        
 
     },
 
@@ -108,7 +108,7 @@ conwet.Gadget = Class.create({
     },
 
     sendFeatureInfo: function(feature) {
-        this.featureInfoEvent.send(Object.toJSON(feature));
+        this.featureInfoEvent.send(feature);
     },
 
     sendCenter: function(lon, lat) {

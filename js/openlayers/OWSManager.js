@@ -11,7 +11,7 @@
  * Modified by jmostazo (CoNWeT, UPM)
  */
 
-OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
+OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
     initialize: function(mapManager, initialServers) {
         OpenLayers.Control.prototype.initialize.apply(this);
 
@@ -53,7 +53,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
             "classNames": ["config_button"],
             "title": _("Config layers"),
             "onClick": function(e) {
-                this.showControls(false);
+                this.showControls(true);
             }.bind(this)
         });
         this.map.viewPortDiv.appendChild(this.configButton);
@@ -67,7 +67,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
             "classNames": ["minimize"],
             "title": _("Minimize"),
             "onClick": function(e) {
-                this.showControls(true);
+                this.showControls(false);
             }.bind(this)
         });
         controlHeader.appendChild(minimizeButton);
@@ -109,36 +109,47 @@ OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
         this.tabsElements.push({"button": serversButton, "container": serversContainer});
 
         serversContainer.appendChild(document.createTextNode("WMS Server"));
-        
+
         this.serverSelect = new StyledElements.StyledSelect();
         this.serverSelect.textDiv.hide();
-        this.serverSelect.addEventListener('change', this._sendGetCapabilities.bind(this));        
+        this.serverSelect.addEventListener('change', this._sendGetCapabilities.bind(this));
         this.serverSelect.insertInto(serversContainer);
-        this.serverSelect.addEntries([{label:_('Select a server'), value:''}]);
+        this.serverSelect.addEntries([{label: _('Select a server'), value: ''}]);
 
-        for (var i = 0; i < this.initialServers.length; i++) {
-            this.serverSelect.addEntries([[this.initialServers[i][0], this.initialServers[i][1]]]);
-        }
+        this.serverSelect.addEntries(this.initialServers);
+
 
         this.serverForm = document.createElement("div");
         serversContainer.appendChild(this.serverForm);
 
         // Selected layers
         this.selectedLayersManager = new conwet.map.SelectedLayersManager(this.map, this.wmsManager, this.mapManager, layersContainer);
+        
+        //Google Maps base layers
+        var googleMap = new OpenLayers.Layer.Google("Google Streets", {numZoomLevels: 19});        
+        this.selectedLayersManager.addLayer(googleMap,"EPSG:900913", true, true);
+        googleMap = new OpenLayers.Layer.Google("Google Satellite", {type: google.maps.MapTypeId.SATELLITE, numZoomLevels: 19});        
+        this.selectedLayersManager.addLayer(googleMap,"EPSG:900913", true, false);
+        googleMap = new OpenLayers.Layer.Google("Google Hybrid", {type: google.maps.MapTypeId.HYBRID, numZoomLevels: 19});        
+        this.selectedLayersManager.addLayer(googleMap,"EPSG:900913", true, false);
+        googleMap = new OpenLayers.Layer.Google("Google Physical", {type: google.maps.MapTypeId.TERRAIN, numZoomLevels: 19});        
+        this.selectedLayersManager.addLayer(googleMap,"EPSG:900913", true, false);
+        
         this.selectedLayersManager.addLayer(new OpenLayers.Layer.OSM("Simple OSM Map"), "EPSG:900913", true, true);
+
 
         //TODO si no hay nada configurado
         this.showTab(this.TAB_SERVERS);
-        this.showControls(false);
+        this.showControls(false);        
 
         return this.div;
     },
-    showControls: function(minimize) {
-        if (minimize) {
-            this.div.removeClassName("show");
-        }
-        else {
+    showControls: function(show) {
+        if (show) {
             this.div.addClassName("show");
+        }
+        else {            
+            this.div.removeClassName("show");
         }
     },
     showTab: function(tab) {
@@ -151,8 +162,16 @@ OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
         this.tabsElements[tab].container.addClassName('active');
     },
     addWmsService: function(name, url) {
-        this.serverSelect.addEntries([{label: name, value: url}]);
-        this.gadget.showMessage(_("Nuevo servidor añadido."));
+        var entry = {label: name, value: url}
+        if (!this._serverExists(entry.label)) {
+            this.serverSelect.addEntries([entry]);
+            this.initialServers.push({label: name, value: url});
+            MashupPlatform.widget.getVariable("services").set(Object.toJSON(this.initialServers));
+            this.gadget.showMessage(_("Nuevo servidor añadido."));
+        } else {
+            this.gadget.showMessage(_("Este servidor ya existe."));
+        }
+
     },
     _sendGetCapabilities: function(select) {
         var baseURL = select.getValue();
@@ -261,8 +280,8 @@ OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
         $(infoDiv).addClassName("layer_info");
 
         // Projection select
-        var projectionSelect = new StyledElements.StyledSelect();        
-        
+        var projectionSelect = new StyledElements.StyledSelect();
+
         // Image type select
         var imageFormatSelect = new StyledElements.StyledSelect();
 
@@ -270,11 +289,11 @@ OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
         var layerSelect = new StyledElements.StyledSelect({idFun: function(layer) {
                 return layer.getName();
             }});
-        
+
         //Function that shows a table with data about the WMS Service
         var showtable = function(select) {
-            
-            var layer = JSON.parse(select.getValue());            
+
+            var layer = JSON.parse(select.getValue());
             var layerInfo = service.getLayer(layer.layer.name);
             infoDiv.innerHTML = "";
 
@@ -303,13 +322,13 @@ OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
             this._addProjections(projectionSelect, JSON.parse(layerSelect.getValue()).projections);
             this._addFormats(imageFormatSelect, layer.formats);
         }.bind(this);
-        
-        layerSelect.addEventListener('change', showtable); 
+
+        layerSelect.addEventListener('change', showtable);
 
         var layers = service.getLayers();
         for (var i = 0; i < layers.length; i++) {
-            var layer = layers[i];            
-            layerSelect.addEntries([{label: layer.getTitle() + ((layer.isQueryable()) ? _(' (q)') : ''), value: JSON.stringify(layer)}]);            
+            var layer = layers[i];
+            layerSelect.addEntries([{label: layer.getTitle() + ((layer.isQueryable()) ? _(' (q)') : ''), value: JSON.stringify(layer)}]);
         }
 
         // Add projections
@@ -319,7 +338,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
 
         // Add formats
         this._addFormats(imageFormatSelect, b.formats);
-        
+
         //Label containing "Projection"
         var projectionDiv = document.createElement('div');
         projectionDiv.addClassName("no_display");
@@ -332,10 +351,10 @@ OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
         baseLayerButton.observe("mousedown", function(e) {
             baseLayerButton.checked = !baseLayerButton.checked;
             if (baseLayerButton.checked) {
-                projectionDiv.removeClassName("no_display");                
+                projectionDiv.removeClassName("no_display");
             }
             else {
-                projectionDiv.addClassName("no_display");                
+                projectionDiv.addClassName("no_display");
             }
         }.bind(this));
 
@@ -358,14 +377,14 @@ OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
         // Create UI
         this.serverForm.appendChild(document.createTextNode('Layer'));
         layerSelect.textDiv.hide();
-        layerSelect.insertInto(this.serverForm);        
-        
-        
+        layerSelect.insertInto(this.serverForm);
+
+
         projectionDiv.appendChild(document.createTextNode('Projection'));
         projectionSelect.textDiv.hide();
         projectionSelect.insertInto(projectionDiv);
         this.serverForm.appendChild(projectionDiv);
-        
+
         this.serverForm.appendChild(document.createTextNode('Image Format'));
         imageFormatSelect.textDiv.hide();
         imageFormatSelect.insertInto(this.serverForm);
@@ -375,7 +394,6 @@ OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
         this.serverForm.appendChild(addButton);
         this.serverForm.appendChild(infoDiv);
     },
-            
     _addProjections: function(select, projections) {
         select.clear();
         for (var i = 0; i < projections.length; i++) {
@@ -426,7 +444,8 @@ OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
 
         //SRS - OL default srs is EPSG:4326 
         /*var options = {srs: 'EPSG:4326'};
-         this.OWSManager.map.setOptions(options) ;
+         this.OWSManager.map.setOptions(options) ;       
+         
          */
 
         if ((!isBaseLayer) && (imageType == 'image/jpeg'))
@@ -439,7 +458,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
             format: imageType,
             TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
             EXCEPTIONS: 'application/vnd.ogc.se_inimage',
-            projection :  new OpenLayers.Projection(this.map.projection)
+            projection: new OpenLayers.Projection(this.map.projection)
         }), projection, isBaseLayer);
     },
     /*addMarkerLayer: function(layer) {
@@ -456,34 +475,47 @@ OpenLayers.Control.OWSManager = OpenLayers.Class (OpenLayers.Control, {
         tr.appendChild(td);
         return tr;
     },
+    _serverExists: function(serverName) {
+
+        var exists = false;
+        for (var i = 0, len = this.initialServers.length; i < len; i++) {
+            if (this.initialServers[i].label === serverName) {
+                exists = true;
+                break;
+            }
+        }
+        return exists;
+    },
     /** @final @type String */
     CLASS_NAME: "OpenLayers.Control.OWSManager"
+
+
 });
 
 /** Sarissa derived getParseErrorText
  
-OpenLayers.Ajax.PARSED_OK = "Document contains no parsing errors";
-OpenLayers.Ajax.PARSED_EMPTY = "Document is empty";
-OpenLayers.Ajax.PARSED_UNKNOWN_ERROR = "Not well-formed or other error";
-
-OpenLayers.Ajax.getParseErrorText = function(oDoc) {
-    //this is only the IE version from Sarissa
-    var parseErrorText = OpenLayers.Ajax.PARSED_OK;
-    if (oDoc && oDoc.parseError && oDoc.parseError.errorCode && oDoc.parseError.errorCode != 0) {
-        parseErrorText = "XML Parsing Error: " + oDoc.parseError.reason + "\nLocation: " + oDoc.parseError.url + "\nLine Number " + oDoc.parseError.line + ", Column " + oDoc.parseError.linepos + ":\n" + oDoc.parseError.srcText + "\n";
-        for (var i = 0; i < oDoc.parseError.linepos; i++) {
-            parseErrorText += "-";
-        }
-        ;
-        parseErrorText += "^\n";
-    } else if (oDoc.documentElement == null) {
-        parseErrorText = OpenLayers.Ajax.PARSED_EMPTY;
-    }
-    ;
-    return parseErrorText;
-};
-
-/*OpenLayers.Ajax.escape = function (sXml) {
+ OpenLayers.Ajax.PARSED_OK = "Document contains no parsing errors";
+ OpenLayers.Ajax.PARSED_EMPTY = "Document is empty";
+ OpenLayers.Ajax.PARSED_UNKNOWN_ERROR = "Not well-formed or other error";
+ 
+ OpenLayers.Ajax.getParseErrorText = function(oDoc) {
+ //this is only the IE version from Sarissa
+ var parseErrorText = OpenLayers.Ajax.PARSED_OK;
+ if (oDoc && oDoc.parseError && oDoc.parseError.errorCode && oDoc.parseError.errorCode != 0) {
+ parseErrorText = "XML Parsing Error: " + oDoc.parseError.reason + "\nLocation: " + oDoc.parseError.url + "\nLine Number " + oDoc.parseError.line + ", Column " + oDoc.parseError.linepos + ":\n" + oDoc.parseError.srcText + "\n";
+ for (var i = 0; i < oDoc.parseError.linepos; i++) {
+ parseErrorText += "-";
+ }
+ ;
+ parseErrorText += "^\n";
+ } else if (oDoc.documentElement == null) {
+ parseErrorText = OpenLayers.Ajax.PARSED_EMPTY;
+ }
+ ;
+ return parseErrorText;
+ };
+ 
+ /*OpenLayers.Ajax.escape = function (sXml) {
  return sXml.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
  };
  

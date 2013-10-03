@@ -13,6 +13,10 @@
         <iPhoneImageURI>img/wms_widget.png</iPhoneImageURI>
         <WikiURI>http://hercules.ls.fi.upm.es/public/conwet/ogf.html#wms-widget</WikiURI>
     </Catalog.ResourceDescription>
+    
+    <Platform.StateProperties>
+        <Property name="services" type="text" label="Services"/>
+    </Platform.StateProperties>
 
     <Platform.Wiring>
         <InputEndpoint name="map_info_slot"       type="text" label="Map info"         friendcode="map_info"/>
