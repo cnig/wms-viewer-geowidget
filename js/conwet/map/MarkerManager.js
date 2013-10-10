@@ -37,7 +37,8 @@ conwet.map.MarkerManager = Class.create({
         this.map.addLayer(this.userMarkers);
         this.map.addLayer(this.eventMarkers);
         this.map.addLayer(this.queryMarkers);
-
+        
+        this.markers = [];
         this._drawToolbar();
         this.showToolbar(true); // TODO Toolbar visible solo en el modo Marker
         this._updateToolbar();
@@ -123,15 +124,19 @@ conwet.map.MarkerManager = Class.create({
         }
     },
 
-    setMarkers: function() {
-        //TODO
+    setMarkers: function(locations) {
+        this._removeAllMarkers();
+        for (var i=0; i<locations.length; i++){
+            var location = locations[i];
+            this.setMarker(new OpenLayers.LonLat(location.lon, location.lat), location.title, "", 0, true);
+        }
     },
 
     setMarker: function(lonlat, title, text, type, popup, onClick) {
         /*if ((type == OpenLayers.AdvancedMarker.QUERY_MARKER) || (type == OpenLayers.AdvancedMarker.EVENT_MARKER)) {
             this._removeTemporalMarkers();
         }*/ // TODO Gestion de POIs
-        this._removeAllMarkers();
+        //this._removeAllMarkers();
         this._setMarker(lonlat, title, text, type, popup, onClick);
     },
 
@@ -141,7 +146,7 @@ conwet.map.MarkerManager = Class.create({
             this._updateMarker(marker, title, text, type, onClick);
         }
         else {
-            var markersLayer = this._getMarkersLayer(type);
+            var markersLayer = this._getMarkersLayer(type);           
 
             marker = new OpenLayers.AdvancedMarker(this, type, markersLayer, this.map, lonlat, title, text, function(marker) {
                 if (!marker.isSelected() && (this.selectedMarker != null)) {
@@ -152,6 +157,7 @@ conwet.map.MarkerManager = Class.create({
 
                 onClick(marker);
             }.bind(this));
+            this.markers.push(marker);
             markersLayer.addMarker(marker);
         }
 
@@ -168,6 +174,19 @@ conwet.map.MarkerManager = Class.create({
 
         this._updateToolbar();
         onClick(marker);
+    },
+            
+    setHighlightMarker: function (lonlat){
+        var marker = this._getExistingMarker(lonlat); // Si el marcador ya existe
+        if (marker != null) {
+            if (this.selectedMarker!=null){
+                this.selectedMarker.setSelected(false);
+            }
+            this.selectedMarker=marker;
+            this._updateToolbar();
+            this.selectedMarker.setSelected(true);
+            this.selectedMarker.addPopup();
+        }
     },
 
     _getExistingMarker: function(lonlat) {
@@ -240,6 +259,7 @@ conwet.map.MarkerManager = Class.create({
         this.selectedMarker = null;
         this.clearPopups();
         this._updateToolbar();
+        this.markers=[];
 
     },
 

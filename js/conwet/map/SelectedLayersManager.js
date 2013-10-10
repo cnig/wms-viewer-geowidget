@@ -137,9 +137,6 @@ conwet.map.SelectedLayersManager = Class.create({
                 if (inputElement.disabled == false) {
                     if (inputElement.type == "radio") {
                         this._changeBaseLayer(layerObj);
-                        //this._zoomToExtent(layerObj.layerInfo);
-                        this._changeMapProjection(layerInfo, this.map.projection);
-
                     } else {
                         layerObj.inputElement.checked = (!layerObj.inputElement.checked);
                     }
@@ -256,23 +253,19 @@ conwet.map.SelectedLayersManager = Class.create({
                 this.map.setBaseLayer(layer, true);
                 this._selectBaseLayerElement(layerObj.layerElement);
                 this._updateOverlaysProjection(layerObj.projection);
-                this.map.events.triggerEvent("changebaselayer");
-
-                if (init)
-                    layerObj.inputElement.checked = true;
-
+                this.map.events.triggerEvent("changebaselayer");                
+                if (!init || isOsm)
+                    layerObj.inputElement.checked = true;                
             }
             else {
                 this.map.setLayerIndex(layer, this.map.getNumLayers() - this.mapManager.getNumMarkerLayers() - 1);
                 layerObj.inputElement.checked = true;
             }
-
-
-
+            
             list.push(layerObj);
             this._disableOverlays();
 
-            if (!init && !isOsm && !isGoogle)
+            if (!init)
                 this.gadget.showMessage((isBaseLayer) ? _("Nueva capa base.") : _("Nueva capa."));
         }
         else {
@@ -291,29 +284,38 @@ conwet.map.SelectedLayersManager = Class.create({
             }.bind(this), 1000);
         }
     },
-    _setExtent: function(layer, layerInfo, projection, isBaseLayer) {
+    _setExtent: function(layer, layerInfo, projection, isBaseLayer) {        
+        
+        layer.maxExtent = layerInfo.getExtent(layer.projection, projection);
         layer.projection = projection;
         layer.units = new OpenLayers.Projection(projection).getUnits();
-        layer.maxExtent = layerInfo.getExtent(projection);
-
-        if ((layer.CLASS_NAME == "OpenLayers.Layer.OSM") || (!isBaseLayer && (this.map.baseLayer.CLASS_NAME == "OpenLayers.Layer.OSM"))
-                || (layer.CLASS_NAME == "OpenLayers.Layer.Google") || (!isBaseLayer && (this.map.baseLayer.CLASS_NAME == "OpenLayers.Layer.Google"))) {
-            layer.maxExtent = null;
-        }
-        else {
-            layer.maxExtext = layerInfo.getExtent(projection);
-        }
+        layer.maxExtext = layerInfo.getMaxExtent(projection);
         layer.maxResolution = "auto";
         layer.minResolution = "auto";
     },
     _changeBaseLayer: function(layerObj) {
+
         layerObj.inputElement.checked = true;
-        this._changeMapProjection(layerObj.layerInfo, layerObj.projection);
-        this.map.setBaseLayer(layerObj.layer, true);
+        var newbounds;
+        var oldproj = this.map.projection;
+
+        if (this.map.projection != layerObj.projection) {
+            newbounds = this._changeMapProjection(layerObj.layerInfo, layerObj.projection);
+        }
+        this.map.setBaseLayer(layerObj.layer, true);        
         this._selectBaseLayerElement(layerObj.layerElement);
+        if (newbounds){
+            this._zoomToExtent();           
+            this.map.zoomToExtent(newbounds);
+             if (oldproj!='EPSG:900913'){
+                this.map.zoomIn();                
+            }
+            
+        }
         this._updateOverlaysProjection(this.map.projection);
-        this._disableOverlays();
+        this._disableOverlays();        
         this.map.events.triggerEvent("changebaselayer");
+
     },
     _getNumBaseLayers: function() {
         return this.baseLayers.length;
@@ -355,8 +357,8 @@ conwet.map.SelectedLayersManager = Class.create({
         }
     },
     _zoomToExtent: function(layerInfo) {
-        this.map.zoomToExtent(layerInfo.getExtent());
-        //this.map.zoomToMaxExtent();
+        //this.map.zoomToExtent(layerInfo.getMaxExtent());
+        this.map.zoomToExtent(this.map.maxExtent);
     },
     _disableOverlays: function(projection) {
         for (var i = 0; i < this.overlays.length; i++) {
@@ -376,9 +378,16 @@ conwet.map.SelectedLayersManager = Class.create({
         }
     },
     _changeMapProjection: function(layerInfo, projection) {
-        this.map.projection = projection;
-        this.map.units = new OpenLayers.Projection(projection).getUnits();
 
+        this.map.units = new OpenLayers.Projection(projection).getUnits();
+        var newbounds;
+        
+        var transformer = new conwet.map.ProjectionTransformer();
+        if (this.map.getExtent() != null)
+            newbounds = transformer.getExtent(JSON.parse("["+this.map.getExtent().toBBOX()+"]"),this.map.projection, projection);
+        else
+            newbounds = layerInfo.getMaxExtent();
+        
         var scales = [Proj4js.maxScale[(this.map.units in (Proj4js.maxScale)) ? this.map.units : "m"]];
         for (var i = 0; i < 18; i++) {
             scales.push(scales[i] / 2);
@@ -386,9 +395,13 @@ conwet.map.SelectedLayersManager = Class.create({
         this.map.scales = scales;
         //this.maxResolution = "auto";
         //this.minResolution = "auto";
-
-        var transformer = new conwet.map.ProjectionTransformer();
-        this.map.maxExtent = layerInfo.getExtent(projection);//transformer.getMaxExtent(projection);
+        
+        this.map.maxExtent = layerInfo.getMaxExtent(projection);//transformer.getMaxExtent(projection);
+        //console.dir (transformer.getMaxExtent('EPSG:4326'));
+        //console.dir (transformer.getMaxExtent('EPSG:23030'));
+        //console.dir (transformer.getExtent([-180, -90, 180, 90],'EPSG:4326','EPSG:23030'));
+        this.map.projection = projection;        
+        return newbounds;
     },
     _selectLayerObj: function(layerObj, isBaseLayer) {
         this._deselectAllLayers();

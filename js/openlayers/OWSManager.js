@@ -125,18 +125,20 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         // Selected layers
         this.selectedLayersManager = new conwet.map.SelectedLayersManager(this.map, this.wmsManager, this.mapManager, layersContainer);
         
-        //Google Maps base layers
+        
+        
+        //Google Maps base layers        
+        googleMap = new OpenLayers.Layer.Google("Google Satellite", {type: google.maps.MapTypeId.SATELLITE, numZoomLevels: 19});        
+        this.selectedLayersManager.addLayer(googleMap,"EPSG:900913", true, true);
+        googleMap = new OpenLayers.Layer.Google("Google Hybrid", {type: google.maps.MapTypeId.HYBRID, numZoomLevels: 19});        
+        this.selectedLayersManager.addLayer(googleMap,"EPSG:900913", true, true);
+        googleMap = new OpenLayers.Layer.Google("Google Physical", {type: google.maps.MapTypeId.TERRAIN, numZoomLevels: 19});        
+        this.selectedLayersManager.addLayer(googleMap,"EPSG:900913", true, true);
         var googleMap = new OpenLayers.Layer.Google("Google Streets", {numZoomLevels: 19});        
         this.selectedLayersManager.addLayer(googleMap,"EPSG:900913", true, true);
-        googleMap = new OpenLayers.Layer.Google("Google Satellite", {type: google.maps.MapTypeId.SATELLITE, numZoomLevels: 19});        
-        this.selectedLayersManager.addLayer(googleMap,"EPSG:900913", true, false);
-        googleMap = new OpenLayers.Layer.Google("Google Hybrid", {type: google.maps.MapTypeId.HYBRID, numZoomLevels: 19});        
-        this.selectedLayersManager.addLayer(googleMap,"EPSG:900913", true, false);
-        googleMap = new OpenLayers.Layer.Google("Google Physical", {type: google.maps.MapTypeId.TERRAIN, numZoomLevels: 19});        
-        this.selectedLayersManager.addLayer(googleMap,"EPSG:900913", true, false);
-        
         this.selectedLayersManager.addLayer(new OpenLayers.Layer.OSM("Simple OSM Map"), "EPSG:900913", true, true);
-
+        
+        
 
         //TODO si no hay nada configurado
         this.showTab(this.TAB_SERVERS);

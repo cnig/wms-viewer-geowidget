@@ -36,9 +36,7 @@ conwet.map.MapManager = Class.create({
             numZoomLevels: 19,
             zoomDuration: 10,
             maxResolution: 'auto',
-            minResolution: 'auto',
-            maxExtent: 'auto'
-            
+            minResolution: 'auto'            
         });
 
         this.transformer.setMap(this.map);
@@ -122,6 +120,7 @@ conwet.map.MapManager = Class.create({
             }
 
             if (('zoom' in changes) || ('center' in changes)) {
+                //this.markerManager.
                 this._onMove(changes);
             }
 
@@ -209,12 +208,18 @@ conwet.map.MapManager = Class.create({
 
         this._setMarker(new OpenLayers.LonLat(lon, lat), title, text, OpenLayers.AdvancedMarker.USER_MARKER, true);
     },
-    setEventMarker: function(lon, lat, title, text) {
-        text = (arguments.length > 4) ? text : "";
-        title = (arguments.length > 3) ? title : "";
-
-        this._setMarker(this.transformer.transform(new OpenLayers.LonLat(lon, lat)), title, text, OpenLayers.AdvancedMarker.EVENT_MARKER, true);
+    setEventMarker: function(positionInfos) {
+        this.markerManager._removeAllMarkers();
+        for (var i = 0; i < positionInfos.length; i++){
+            var location = positionInfos[i];
+            this._setMarker(this.transformer.transform(new OpenLayers.LonLat(location.lon, location.lat)), location.title, "", OpenLayers.AdvancedMarker.EVENT_MARKER, true)
+        };
     },
+            
+    setHighlightMarker: function(lonlat){
+        this.markerManager.setHighlightMarker(this.transformer.transform(new OpenLayers.LonLat(lonlat.lon, lonlat.lat)));
+    },
+            
     setQueryMarker: function(lon, lat, title, text) {
         text = (arguments.length > 4) ? text : "";
         title = (arguments.length > 3) ? title : "";

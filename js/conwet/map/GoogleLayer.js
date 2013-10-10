@@ -25,43 +25,41 @@
 use("conwet.map");
 
 conwet.map.GoogleLayer = Class.create({
-
     initialize: function(layer) {
         this.layer = layer;
     },
-
     getName: function() {
         return this.layer.name;
     },
-
     getTitle: function() {
         return this.layer.name;
     },
-
     getAbstract: function() {
         return null;
     },
-
     isQueryable: function() {
         return false;
     },
-
     getProjections: function() {
         return ["EPSG:900913"];
     },
-
     getFormats: function() {
         return [];
     },
-
     getExtent: function(srs) {
         return new OpenLayers.Bounds(-20037508.3392, -20037508.3392, 20037508.3392, 20037508.3392);
     },
-
+            
+    getMaxExtent: function() {
+        //return new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34, 20037508.34);
+        var transformer = new conwet.map.ProjectionTransformer();
+        var a = transformer.getMaxExtent("EPSG:900913");
+        return a;
+    },
+            
     getAtribution: function() {
         return this.layer.attribution;
     },
-
     getLegendUrl: function() {
         return null;
     }

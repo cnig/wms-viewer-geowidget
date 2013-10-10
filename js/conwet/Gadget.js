@@ -120,23 +120,13 @@ conwet.Gadget = Class.create({
     },
 
     setMarker: function(lonlat) {
-        //TODO INFO
-        lonlat = lonlat.split(/\s*,\s*/);
-        if (lonlat.length == 2) {
-            this.mapManager.setEventMarker(lonlat[0], lonlat[1]);
-        }
+        this.mapManager.setHighlightMarker(JSON.parse(lonlat));
+        
     },
 
-    setInfoMarker: function(positionInfo) {
-        if (!("position" in positionInfo)) {
-            return;
-        }
-        var lon   = positionInfo.position.lon;
-        var lat   = positionInfo.position.lat;
-        var title = ("title" in positionInfo)? positionInfo.title: "";
-        var text  = ("text"  in positionInfo)? positionInfo.text:  "";
-
-        this.mapManager.setEventMarker(lon, lat, title, text);
+    setInfoMarker: function(positionInfos) {
+        
+        this.mapManager.setEventMarker(positionInfos);
     },
 
     _disableOtherCursors: function() {
