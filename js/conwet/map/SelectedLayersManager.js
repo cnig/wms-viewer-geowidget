@@ -296,21 +296,23 @@ conwet.map.SelectedLayersManager = Class.create({
     _changeBaseLayer: function(layerObj) {
 
         layerObj.inputElement.checked = true;
-        var newbounds;
-        var oldproj = this.map.projection;
+        var newcenter;
+        //var oldproj = this.map.projection;
+        var oldZoom = this.map.getZoom();
 
         if (this.map.projection != layerObj.projection) {
-            newbounds = this._changeMapProjection(layerObj.layerInfo, layerObj.projection);
+            newcenter = this._changeMapProjection(layerObj.layerInfo, layerObj.projection);
         }
         this.map.setBaseLayer(layerObj.layer, true);        
         this._selectBaseLayerElement(layerObj.layerElement);
-        if (newbounds){
-            this._zoomToExtent();           
+        if (newcenter){
+            /*this._zoomToExtent();           
             this.map.zoomToExtent(newbounds);
              if (oldproj!='EPSG:900913'){
-                this.map.zoomIn();                
-            }
-            
+                //this.map.zoomIn();                
+            }*/
+            this._zoomToExtent();
+            this.map.setCenter(newcenter, oldZoom);
         }
         this._updateOverlaysProjection(this.map.projection);
         this._disableOverlays();        
@@ -380,13 +382,13 @@ conwet.map.SelectedLayersManager = Class.create({
     _changeMapProjection: function(layerInfo, projection) {
 
         this.map.units = new OpenLayers.Projection(projection).getUnits();
-        var newbounds;
+        var newcenter;
         
         var transformer = new conwet.map.ProjectionTransformer();
-        if (this.map.getExtent() != null)
-            newbounds = transformer.getExtent(JSON.parse("["+this.map.getExtent().toBBOX()+"]"),this.map.projection, projection);
+        if (this.map.getCenter() != null)
+            newcenter = transformer.advancedTransform(this.map.getCenter(),this.map.projection, projection);
         else
-            newbounds = layerInfo.getMaxExtent();
+            newcenter = new OpenLayers.LonLat(0,0);
         
         var scales = [Proj4js.maxScale[(this.map.units in (Proj4js.maxScale)) ? this.map.units : "m"]];
         for (var i = 0; i < 18; i++) {
@@ -396,12 +398,9 @@ conwet.map.SelectedLayersManager = Class.create({
         //this.maxResolution = "auto";
         //this.minResolution = "auto";
         
-        this.map.maxExtent = layerInfo.getMaxExtent(projection);//transformer.getMaxExtent(projection);
-        //console.dir (transformer.getMaxExtent('EPSG:4326'));
-        //console.dir (transformer.getMaxExtent('EPSG:23030'));
-        //console.dir (transformer.getExtent([-180, -90, 180, 90],'EPSG:4326','EPSG:23030'));
+        this.map.maxExtent = layerInfo.getMaxExtent(projection);
         this.map.projection = projection;        
-        return newbounds;
+        return newcenter;
     },
     _selectLayerObj: function(layerObj, isBaseLayer) {
         this._deselectAllLayers();
