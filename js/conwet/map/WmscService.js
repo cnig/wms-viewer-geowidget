@@ -24,15 +24,22 @@
 
 use("conwet.map");
 
-conwet.map.WmsService = Class.create({
+conwet.map.WmscService = Class.create({
 
     initialize: function(xml) {
-        this.wms = (new OpenLayers.Format.WMSCapabilities().read(xml));
+        var formater = new OpenLayers.Format.WMSCapabilities.v1_1_1_WMSC();
+        this.wms = (formater).read(xml);
         this.layers = $H();
+        var factor = this.wms.capability.vendorSpecific.tileSets.length / this.wms.capability.layers.length;
+        
 
         for (var i = 0; i < this.wms.capability.layers.length; i++) {
+            var tileSets = [];
+            for (var j = 0; j < factor; j++){
+                tileSets [j] = this.wms.capability.vendorSpecific.tileSets[((j+1)*(i+1))-1];
+            }
+            this.addLayer(this.wms.capability.layers[i], tileSets);
             
-            this.addLayer(this.wms.capability.layers[i]);
         }
 
     },
@@ -81,8 +88,8 @@ conwet.map.WmsService = Class.create({
         return this.layers.get(name);
     },
 
-    addLayer: function(layer) {
-        this.layers.set(layer.name, new conwet.map.WmsLayer(layer,[]));
+    addLayer: function(layer, tileSets) {
+        this.layers.set(layer.name, new conwet.map.WmsLayer(layer, tileSets));
     },
 
     removeLayer: function(name) {

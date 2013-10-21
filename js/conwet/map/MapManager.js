@@ -28,15 +28,13 @@ conwet.map.MapManager = Class.create({
     initialize: function(gadget, options) {
         this.transformer = new conwet.map.ProjectionTransformer();
         this.gadget = gadget;
-        this.map = new OpenLayers.Map({
-            div: 'map',
-            panMethod: null,
+        this.map = new OpenLayers.Map($('map'),{            
             controls: [],
             displayProjection: new OpenLayers.Projection("EPSG:4326"),
-            numZoomLevels: 19,
-            zoomDuration: 10,
-            maxResolution: 'auto',
-            minResolution: 'auto'            
+            zoomDuration: 10,            
+            //resolutions: [1.40625,0.703125,0.3515625,0.17578125,0.087890625,0.0439453125],
+            //maxResolution: 0.17578125,
+            //minResolution: 0.0439453125,
         });
 
         this.transformer.setMap(this.map);
@@ -172,6 +170,9 @@ conwet.map.MapManager = Class.create({
     },
     addWmsService: function(name, url) {
         this.owsManager.addWmsService(name, url);
+    },
+    addWmscService: function(name, url) {
+        this.owsManager.addWmscService(name, url);
     },
     _setZoomLevel: function(zoomLevel) {
         zoomLevel = (zoomLevel < 0) ? 0 : zoomLevel;

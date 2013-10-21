@@ -42,8 +42,13 @@ conwet.Gadget = Class.create({
         this.wmsServiceSlot    = new conwet.events.Slot('wms_service_slot', function(service) {
             service = JSON.parse(service);            
             if (typeof service == 'object') {
-                if (('type' in service) && ('url' in service) && ('name' in service) && (service.type == "WMS") && (service.url != "")) {
-                    this.addWmsService(service);
+                if (('type' in service) && ('url' in service) && ('name' in service) && (service.url != "")) {
+                    if (service.type == "WMS"){
+                        this.addWmsService(service);
+                    }else{
+                        this.addWmscService(service);
+                    }
+                    
                 }
             }
         }.bind(this));
@@ -105,6 +110,10 @@ conwet.Gadget = Class.create({
 
     addWmsService: function(wmsService) {
         this.mapManager.addWmsService(wmsService.name, wmsService.url);
+    },
+    
+    addWmscService: function(wmscService) {
+        this.mapManager.addWmscService(wmscService.name, wmscService.url);
     },
 
     sendFeatureInfo: function(feature) {

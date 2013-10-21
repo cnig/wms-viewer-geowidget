@@ -25,11 +25,11 @@
 use("conwet.map");
 
 conwet.map.WmsLayer = Class.create({
-
-    initialize: function(layer) {
+    initialize: function(layer, tileSets) {
         this.layer = layer;
         this.formats = [];
         this.projections = [];
+        this.resolutions = $H();
 
         for (var i = 0; i < layer.formats.length; i++) {
             var format = layer.formats[i];
@@ -51,51 +51,59 @@ conwet.map.WmsLayer = Class.create({
                 this.projections.push(proj);
             }
         }
+        
+        if (tileSets.length) {
+            for (var i = 0; i < tileSets.length; i++) {
+                var proj;
+                for (var index in tileSets[i].bbox) {                                           
+                    if (tileSets[i].bbox.hasOwnProperty(index)) {
+                        proj = tileSets[i].bbox[index].srs;
+                    }
+                }
+                var format = tileSets[i].format;
+                var resolutions = tileSets[i].resolutions;
+                this.resolutions.set(proj + format, resolutions);
+            }
+            console.log("hola");
+        }
     },
-
     getName: function() {
         return this.layer.name;
     },
-
     getTitle: function() {
         return this.layer.title;
     },
-
     getAbstract: function() {
         return this.layer.abstract;
     },
-
     isQueryable: function() {
         return this.layer.queryable;
     },
-
     getProjections: function() {
         return this.projections;
     },
-
     getFormats: function() {
         return this.formats;
     },
-
     getExtent: function(oldProjection, srs) {
         var transformer = new conwet.map.ProjectionTransformer();
         return transformer.getExtent(this.layer.llbbox, 'EPSG:4326', srs);
     },
-            
-    getMaxExtent: function (proj) {
-        var transformer = new conwet.map.ProjectionTransformer();        
+    getMaxExtent: function(proj) {
+        var transformer = new conwet.map.ProjectionTransformer();
         return transformer.getExtent(this.layer.llbbox, 'EPSG:4326', proj);
     },
-
     getAtribution: function() {
         return this.layer.attribution;
     },
-
     getLegendUrl: function() {
         if ((this.layer.styles.length > 0) && ("legend" in this.layer.styles[0])) {
             return this.layer.styles[0].legend.href;
         }
         return null;
+    },
+    getResolutions: function(key){
+        return this.resolutions.get(key);
     }
 
 });

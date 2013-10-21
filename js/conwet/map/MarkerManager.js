@@ -34,9 +34,11 @@ conwet.map.MarkerManager = Class.create({
         this.userMarkers  = new OpenLayers.Layer.Markers("User  markers");
         this.eventMarkers = new OpenLayers.Layer.Markers("Event markers");
         this.queryMarkers = new OpenLayers.Layer.Markers("Query markers");
+        this.boxesMarkers = new OpenLayers.Layer.Boxes("Boxes");
         this.map.addLayer(this.userMarkers);
         this.map.addLayer(this.eventMarkers);
         this.map.addLayer(this.queryMarkers);
+        this.map.addLayer(this.boxesMarkers);
         
         this.markers = [];
         this._drawToolbar();
