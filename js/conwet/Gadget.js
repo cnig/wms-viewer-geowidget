@@ -45,7 +45,7 @@ conwet.Gadget = Class.create({
                 if (('type' in service) && ('url' in service) && ('name' in service) && (service.url != "")) {
                     if (service.type == "WMS"){
                         this.addWmsService(service);
-                    }else{
+                    }else if (service.type == "WMSC"){
                         this.addWmscService(service);
                     }
                     
