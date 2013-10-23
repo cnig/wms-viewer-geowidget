@@ -134,8 +134,10 @@ conwet.Gadget = Class.create({
     },
 
     setInfoMarker: function(positionInfos) {
-        
-        this.mapManager.setEventMarker(positionInfos);
+        if (positionInfos[0].bbox != null)
+            this.mapManager.setBox(positionInfos[0]);            
+        else        
+            this.mapManager.setEventMarker(positionInfos);
     },
 
     _disableOtherCursors: function() {

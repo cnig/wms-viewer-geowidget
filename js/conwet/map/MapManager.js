@@ -239,6 +239,10 @@ conwet.map.MapManager = Class.create({
     },
     getNumMarkerLayers: function() {
         return this.markerManager.getNumLayers();
+    },
+    
+    setBox: function (locationInfo){
+        this.markerManager.setBox(locationInfo);
     }
 
 });

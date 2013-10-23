@@ -41,6 +41,7 @@ OpenLayers.AdvancedMarker = OpenLayers.Class(OpenLayers.Marker, {
         this.onClick       = onClick;
         this.lon           = lonlat.lon;
         this.lat           = lonlat.lat;
+        this.lonlat = lonlat;
         this.transformer   = new conwet.map.ProjectionTransformer(map);
         
         //lonlat = this.transformer.transform(lonlat);

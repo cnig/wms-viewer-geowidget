@@ -40,6 +40,8 @@ conwet.map.MarkerManager = Class.create({
         this.map.addLayer(this.queryMarkers);
         this.map.addLayer(this.boxesMarkers);
         
+        this.box = null;
+        
         this.markers = [];
         this._drawToolbar();
         this.showToolbar(true); // TODO Toolbar visible solo en el modo Marker
@@ -97,12 +99,13 @@ conwet.map.MarkerManager = Class.create({
         var hasQuery = this.queryMarkers.markers.length > 0;
         var hasEvent = this.eventMarkers.markers.length > 0;
         var hasUser  = this.userMarkers.markers.length > 0;
+        var hasBox = (this.box!=null);
 
         this._showElement(this.saveButton, false);
         this._showElement(this.removeSelectedButton, false);
         this._showElement(this.removeQueryButton, false);
 
-        if (!hasQuery && !hasEvent && !hasUser) {
+        if (!hasQuery && !hasEvent && !hasUser && !hasBox) {
             this._showElement(this.removeAllButton, false);
         }
         else {
@@ -111,7 +114,7 @@ conwet.map.MarkerManager = Class.create({
 
         return; // TODO Gestion de POIs
 
-        if (!hasQuery && !hasEvent && !hasUser) {
+        if (!hasQuery && !hasEvent && !hasUser && !hasBox) {
             this._showElement(this.saveButton, false);
             this._showElement(this.removeSelectedButton, false);
             this._showElement(this.removeAllButton, false);
@@ -188,6 +191,7 @@ conwet.map.MarkerManager = Class.create({
             this._updateToolbar();
             this.selectedMarker.setSelected(true);
             this.selectedMarker.addPopup();
+            this.map.setCenter(this.selectedMarker.lonlat);
         }
     },
 
@@ -251,13 +255,15 @@ conwet.map.MarkerManager = Class.create({
     },
 
     getNumLayers: function() {
-        return 3;
+        return 4;
     },
 
     _removeAllMarkers: function() {
         this.userMarkers.clearMarkers();
         this.eventMarkers.clearMarkers();
         this.queryMarkers.clearMarkers();
+        this.boxesMarkers.clearMarkers();
+        this.box = null;
         this.selectedMarker = null;
         this.clearPopups();
         this._updateToolbar();
@@ -300,6 +306,26 @@ conwet.map.MarkerManager = Class.create({
             this.map.removePopup(popup);
             popup.destroy();
         }
+    },
+    
+    setBox: function(positionInfos){
+        var bounds = positionInfos.bbox;
+        var transformer = new conwet.map.ProjectionTransformer(this.map);
+        var newBounds = new OpenLayers.Bounds(); //bounds[2],bounds[1],bounds[0],bounds[3]        
+        newBounds.extend(transformer.transform(new OpenLayers.LonLat(bounds[0],bounds[1])));
+        newBounds.extend(transformer.transform(new OpenLayers.LonLat(bounds[2],bounds[3])));
+        
+        if (this.box!=null){
+            this.boxesMarkers.removeMarker(this.box);
+            this.box=null;
+        }
+        
+        this.box =  new OpenLayers.Marker.Box(newBounds);
+        this.map.zoomToExtent(newBounds);
+        
+         
+        this.boxesMarkers.addMarker(this.box);
+        this._updateToolbar();
     }
 
 });
