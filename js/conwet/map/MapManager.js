@@ -33,7 +33,7 @@ conwet.map.MapManager = Class.create({
             displayProjection: new OpenLayers.Projection("EPSG:4326"),
             zoomDuration: 10,            
             //resolutions: [1.40625,0.703125,0.3515625,0.17578125,0.087890625,0.0439453125],
-            //maxResolution: 0.17578125,
+            maxResolution: 180/256
             //minResolution: 0.0439453125,
         });
 

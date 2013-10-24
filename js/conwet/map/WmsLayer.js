@@ -85,13 +85,13 @@ conwet.map.WmsLayer = Class.create({
     getFormats: function() {
         return this.formats;
     },
-    getExtent: function(oldProjection, srs) {
+    getExtent: function(srs) {
         var transformer = new conwet.map.ProjectionTransformer();
         return transformer.getExtent(this.layer.llbbox, 'EPSG:4326', srs);
     },
     getMaxExtent: function(proj) {
         var transformer = new conwet.map.ProjectionTransformer();
-        return transformer.getExtent(this.layer.llbbox, 'EPSG:4326', proj);
+        return transformer.getExtent([-180, -90, 180, 90], 'EPSG:4326', proj);
     },
     getAtribution: function() {
         return this.layer.attribution;
