@@ -82,6 +82,7 @@ conwet.map.ProjectionTransformer = Class.create({
 
             var projDef = MashupPlatform.http.makeRequest(url, options);
             eval(projDef.transport.responseText + "alert(" + projDef.transport.responseText + ");");
+            console.log();
         }
         catch (e) {
             //alert("Error");

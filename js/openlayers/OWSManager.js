@@ -165,7 +165,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
     },
     addWmsService: function(name, url) {
         var entry = {label: name, value: url}
-        if (this._serverIndex(entry.url) == -1) {
+        if (this._serverIndex(url) == -1) {
             this.serverSelect.addEntries([entry]);
             this.initialServers.push({label: name, value: url, isWmsc: false});
             MashupPlatform.widget.getVariable("services").set(Object.toJSON(this.initialServers));
@@ -177,7 +177,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
     },
     addWmscService: function(name, url) {
         var entry = {label: name, value: url}
-        if (this._serverIndex(entry.url) == -1) {
+        if (this._serverIndex(url) == -1) {
             this.serverSelect.addEntries([entry]);
             this.initialServers.push({label: name, value: url, isWmsc: true});
             MashupPlatform.widget.getVariable("services").set(Object.toJSON(this.initialServers));
@@ -480,12 +480,18 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
                 format: imageType,
                 TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
                 EXCEPTIONS: 'application/vnd.ogc.se_inimage',
-                projection: new OpenLayers.Projection(this.map.projection),                
+                projection: new OpenLayers.Projection(this.map.projection),
             }), projection, isBaseLayer);
 
         } else {
-            layer.resolutions = $H(layer.resolutions);
-            var resolutions = layer.resolutions.get(projection+imageType);
+            var resolutions;
+            if (typeof layer.resolutions.get == 'function') {
+                resolutions = layer.resolutions.get(projection + imageType);
+            }
+            else {
+                layer.resolutions = $H(layer.resolutions);
+                resolutions = layer.resolutions.get(projection + imageType);
+            }
             this.selectedLayersManager.addLayer(new OpenLayers.Layer.WMS(layer.layer.name, url, {
                 layers: layer.layer.name,
                 format: imageType,
@@ -526,7 +532,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
     _isWmsc: function(serverUrl) {
         var index = this._serverIndex(serverUrl);
         var isWmsc = false;
-        
+
         if (index != -1) {
             if (this.initialServers[index].isWmsc)
                 isWmsc = true;
