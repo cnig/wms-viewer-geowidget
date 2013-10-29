@@ -139,8 +139,7 @@ conwet.map.MapManager = Class.create({
                 this.mousePosition.activate();
             }
         });
-        this.map.events.register('mouseout', this.mousePosition, this.mousePosition.deactivate); 
-        this._setZoomLevel(0);
+        this.map.events.register('mouseout', this.mousePosition, this.mousePosition.deactivate);       
     },
     getGadget: function() {
         return this.gadget;
@@ -156,7 +155,7 @@ conwet.map.MapManager = Class.create({
     setCenter: function(lon, lat) {
         var center = this.transformer.transform(new OpenLayers.LonLat(lon, lat));
         if (!conwet.map.ProjectionTransformer.compareLonlat(this.center, center)) {
-            this.map.setCenter(center, this.map.getZoom());
+            this.map.setCenter(center);
         }
     },
     setZoom: function(zoom) {
