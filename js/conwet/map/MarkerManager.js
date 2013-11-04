@@ -129,13 +129,13 @@ conwet.map.MarkerManager = Class.create({
         }
     },
 
-    setMarkers: function(locations) {
-        this._removeAllMarkers();
+    /*setMarkers: function(locations) {
+        this.eventMarkers.clearMarkers();
         for (var i=0; i<locations.length; i++){
             var location = locations[i];
             this.setMarker(new OpenLayers.LonLat(location.lon, location.lat), location.title, "", 0, true);
         }
-    },
+    },*/
 
     setMarker: function(lonlat, title, text, type, popup, onClick) {
         /*if ((type == OpenLayers.AdvancedMarker.QUERY_MARKER) || (type == OpenLayers.AdvancedMarker.EVENT_MARKER)) {
@@ -178,7 +178,9 @@ conwet.map.MarkerManager = Class.create({
         }
 
         this._updateToolbar();
-        onClick(marker);
+        if (type === OpenLayers.AdvancedMarker.USER_MARKER) {
+            onClick(marker);
+        }
     },
             
     setHighlightMarker: function (lonlat){

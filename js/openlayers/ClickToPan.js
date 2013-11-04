@@ -31,6 +31,7 @@ OpenLayers.Control.ClickToPan = OpenLayers.Class(OpenLayers.Control, {
             'single': true,
             'delay': 200
         });
+        
 
         OpenLayers.Control.prototype.initialize.apply(this);
 
@@ -40,7 +41,10 @@ OpenLayers.Control.ClickToPan = OpenLayers.Class(OpenLayers.Control, {
     },
 
     onClick: function(e) {
+        this.mapManager.cursorManager.enableEvents();
         this.map.panTo(this.map.getLonLatFromPixel(e.xy));
+        this.mapManager.cursorManager.disableEvents();
+        
     }
 
 });

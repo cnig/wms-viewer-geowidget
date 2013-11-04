@@ -29,7 +29,7 @@ conwet.Gadget = Class.create({
     initialize: function() {
         this.centerEvent       = new conwet.events.Event('center_event');
         this.featureInfoEvent  = new conwet.events.Event('feature_info_event');
-        this.gadgetInfoEvent   = new conwet.events.PropagableEvent('map_info_event');
+        this.gadgetInfoEvent   = new conwet.events.Event('map_info_event');
 
         this.locationSlot      = new conwet.events.Slot('location_slot',      this.setMarker.bind(this));
         this.locationInfoSlot  = new conwet.events.Slot('location_info_slot', function(location) {
@@ -53,10 +53,14 @@ conwet.Gadget = Class.create({
             }
         }.bind(this));
 
-        this.gadgetInfoSlot    = new conwet.events.PropagableSlot('map_info_slot', function(state) {
-            this.updateState(state.evalJSON());
+        this.gadgetInfoSlot    = new conwet.events.Slot('map_info_slot', function(state) {
+            this.reacting_to_wiring_event = true;
+            try {
+                this.updateState(state.evalJSON());
+            } catch (e) {}
+            this.reacting_to_wiring_event = false;
         }.bind(this));
-        this.gadgetInfoSlot.addEvent(this.gadgetInfoEvent);
+        //this.gadgetInfoSlot.addEvent(this.gadgetInfoEvent);
 
         // Attributes
         this.messageManager = new conwet.ui.MessageManager(1000);
@@ -67,29 +71,33 @@ conwet.Gadget = Class.create({
             'onMove'       : this._moveOtherCursors.bind(this)
         });
 
+        this.reacting_to_wiring_event = false;
         this.mapManager = new conwet.map.MapManager(this, {
-            'onMove'       : this.sendState.bind(this),
-            'onBeforeDrag' : function() {
+            onMove       : this.sendState.bind(this),
+            onBeforeDrag : function() {
                 this.cursorManager.disableEvents();
                 this._disableOtherCursors();
             }.bind(this),
-            'onAfterDrag'  : function() {
+            onAfterDrag  : function() {
                 this.cursorManager.enableEvents();
             }.bind(this),
-            'initialZoom'  : 0,
-            'initialCenter' : {
+            initialZoom  : 0,
+            initialCenter : {
                 'lon': 0,
                 'lat': 0
-            }
+            },
+            cursorManager: this.cursorManager
         });        
 
     },
 
     sendState: function(state) {
-        if ("center" in state) {
-            this.sendCenter(state.center.lon, state.center.lat);
+        if (!this.reacting_to_wiring_event) {
+            if ("center" in state) {
+                this.sendCenter(state.center.lon, state.center.lat);
+            }
+            this.gadgetInfoEvent.send(Object.toJSON(state));
         }
-        this.gadgetInfoEvent.send(Object.toJSON(state));
     },
 
     updateState: function(state) {
