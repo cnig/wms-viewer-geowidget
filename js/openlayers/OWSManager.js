@@ -116,8 +116,6 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         this.serverSelect.insertInto(serversContainer);
         this.serverSelect.addEntries([{label: _('Select a server'), value: ''}]);
 
-        this.serverSelect.addEntries(this.initialServers);
-
 
         this.serverForm = document.createElement("div");
         serversContainer.appendChild(this.serverForm);
@@ -128,17 +126,35 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
 
 
         //Google Maps base layers        
-        googleMap = new OpenLayers.Layer.Google("Google Satellite", {type: google.maps.MapTypeId.SATELLITE, numZoomLevels: 19});
+        var googleMap = new OpenLayers.Layer.Google("Google Satellite", {type: google.maps.MapTypeId.SATELLITE, numZoomLevels: 19});
         this.selectedLayersManager.addLayer(googleMap, "EPSG:900913", true, true);
         googleMap = new OpenLayers.Layer.Google("Google Hybrid", {type: google.maps.MapTypeId.HYBRID, numZoomLevels: 19});
         this.selectedLayersManager.addLayer(googleMap, "EPSG:900913", true, true);
         googleMap = new OpenLayers.Layer.Google("Google Physical", {type: google.maps.MapTypeId.TERRAIN, numZoomLevels: 19});
         this.selectedLayersManager.addLayer(googleMap, "EPSG:900913", true, true);
-        var googleMap = new OpenLayers.Layer.Google("Google Streets", {numZoomLevels: 19});
+        googleMap = new OpenLayers.Layer.Google("Google Streets", {numZoomLevels: 19});
         this.selectedLayersManager.addLayer(googleMap, "EPSG:900913", true, true);
         this.selectedLayersManager.addLayer(new OpenLayers.Layer.OSM("Simple OSM Map"), "EPSG:900913", true, true);
 
+        /*var idee = new OpenLayers.Layer.WMS("IGN: Todas las capas(q)", "http://www.ign.es/wms-inspire/ign-base", {
+            layers: "IGNBaseTodo",
+            format: "image/png",
+            TRANSPARENT: false,
+            EXCEPTIONS: 'application/vnd.ogc.se_inimage',
+            projection: new OpenLayers.Projection("EPSG:4326"),
+            isBaseLayer: true});
+        this.selectedLayersManager.addLayer(idee, "EPSG: 4326", true, true);*/
+        this.serverSelect.addEntries(this.initialServers);
+        this.preloadWmsLayer("Mapa base de España", "http://www.ign.es/wms-inspire/ign-base", "IGNBaseTodo", "EPSG:4258");
 
+
+        /*this._addWMSLayer(
+         this.serverSelect.getValue(),
+         JSON.parse(layerSelect.getValue()),
+         projectionSelect.getValue(),
+         imageFormatSelect.getValue(),
+         baseLayerButton.checked
+         );*/
 
         //TODO si no hay nada configurado
         this.showTab(this.TAB_SERVERS);
@@ -208,21 +224,21 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         }
 
         this.gadget.showMessage(_("Solicitando datos al servidor."), true);
-        baseURL += "service=WMS&version=1.1.1&request=GetCapabilities";
+        baseURL += "service=WMS&version=2.0&request=GetCapabilities";
 
         //TODO Gif chulo para esperar
         MashupPlatform.http.makeRequest(baseURL, {
             method: 'GET',
             onSuccess: function(response) {
                 this.gadget.hideMessage();
-                this._parseGetCapabilities(baseURL, response, isWmsc);
+                this._parseGetCapabilities(baseURL, response, isWmsc, false);
             }.bind(this),
             onFailure: function() {
                 this.gadget.showError(_("El servidor no responde."));
             }.bind(this)
         });
     },
-    _parseGetCapabilities: function(baseURL, ajaxResponse, isWmsc) {
+    _parseGetCapabilities: function(baseURL, ajaxResponse, isWmsc, init) {
         var xml;
         if (!("responseXML" in ajaxResponse)) {
             var text = ajaxResponse.responseText;
@@ -257,7 +273,8 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
                 service = new conwet.map.WmsService(xml);
             }
             this.wmsManager.addService(baseURL, service);
-            this._drawServersForm(baseURL);
+            if (!init)
+                this._drawServersForm(baseURL);
         } else {
             this.gadget.showError(_('Incorrect content: check your WMS url'));
         }
@@ -311,7 +328,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
                 return layer.getName();
             }});
 
-        //Function that shows a table with data about the WMS Service
+        //Function that shows a table with data from the WMS Service
         var showtable = function(select) {
 
             var layer = JSON.parse(select.getValue());
@@ -434,7 +451,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         layer.addFeatures((new OpenLayers.Format.GeoJSON()).read(json));
         this.map.addLayer(layer);
     },
-    _addWMSLayer: function(url, layer, projection, imageType, isBaseLayer) {
+    _addWMSLayer: function(url, layer, projection, imageType, isBaseLayer, init) {
         if (url.indexOf('?') == -1) {
             url = url + '?';
         } else {
@@ -452,19 +469,19 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         }
 
         // TODO Revisar
-        if (this.resolutionsValue) {
-            var aResolutions = this.resolutionsValue;
-            var minRes = aResolutions[aResolutions.length - 1];
-            var options = {
-                resolutions: aResolutions,
-                maxresolution: aResolutions[0],
-                minResolution: minRes
-            };
-            this.map.setOptions(options);
-        }
-
-        //SRS - OL default srs is EPSG:4326 
-        /*var options = {srs: 'EPSG:4326'};
+        /*if (this.resolutionsValue) {
+         var aResolutions = this.resolutionsValue;
+         var minRes = aResolutions[aResolutions.length - 1];
+         var options = {
+         resolutions: aResolutions,
+         maxresolution: aResolutions[0],
+         minResolution: minRes
+         };
+         this.map.setOptions(options);
+         }
+         
+         //SRS - OL default srs is EPSG:4326 
+         /*var options = {srs: 'EPSG:4326'};
          this.OWSManager.map.setOptions(options) ;       
          
          */
@@ -480,8 +497,8 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
                 format: imageType,
                 TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
                 EXCEPTIONS: 'application/vnd.ogc.se_inimage',
-                projection: new OpenLayers.Projection(this.map.projection),
-            }), projection, isBaseLayer);
+                projection: new OpenLayers.Projection(projection),
+            }), projection, isBaseLayer, init);
 
         } else {
             var resolutions;
@@ -497,18 +514,18 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
                 format: imageType,
                 TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
                 EXCEPTIONS: 'application/vnd.ogc.se_inimage',
-                projection: new OpenLayers.Projection(this.map.projection),
+                projection: new OpenLayers.Projection(projection),
                 serverResolutions: resolutions,
                 resolutions: resolutions,
                 isBaseLayer: isBaseLayer
-            }), projection, isBaseLayer);
+            }), projection, isBaseLayer, init);
         }
     },
     /*addMarkerLayer: function(layer) {
      this.selectedLayersManager.addLayer(layer, false);
      },*/
 
-    _createTableRow: function(title, value) {
+    _createTableRow: function(title, value, layer) {
         var tr = document.createElement("tr");
         var th = document.createElement("th");
         th.appendChild(document.createTextNode(title));
@@ -540,8 +557,35 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
 
         return isWmsc;
     },
+    preloadWmsLayer: function(name, serverUrl, layerTitle, projection) {
+        var url = serverUrl + "?service=WMS&version=2.0&request=GetCapabilities";
+        MashupPlatform.http.makeRequest(url, {
+            method: 'GET',
+            onSuccess: function(response) {
+                this.gadget.hideMessage();
+                this._parseGetCapabilities(url, response, false, true);
+                var service = this.wmsManager.getService(serverUrl);
+                var layers = service.getLayers();
+                var layer;
+                
+                for (var i=0; i<layers.length; i++){
+                    if (layers[i].layer.name == layerTitle){
+                        layer = layers[i];
+                        break;
+                    }
+                }
+                this._addWMSLayer(serverUrl, layer, projection, "image/jpeg", true, true);
+
+            }.bind(this),
+            onFailure: function() {
+                this.gadget.showError(_("El servidor no responde."));
+            }.bind(this)
+        });
+
+    },
     /** @final @type String */
     CLASS_NAME: "OpenLayers.Control.OWSManager"
+
 
 });
 
