@@ -29,6 +29,7 @@ conwet.Gadget = Class.create({
         this.centerEvent = new conwet.events.Event('center_event');
         this.featureInfoEvent = new conwet.events.Event('feature_info_event');
         this.gadgetInfoEvent = new conwet.events.Event('map_info_event');
+        this.legendUrl = new conwet.events.Event('legend_url');
 
         this.locationSlot = new conwet.events.Slot('location_slot', this.setMarker.bind(this));
         this.locationInfoSlot = new conwet.events.Slot('location_info_slot', function(location) {

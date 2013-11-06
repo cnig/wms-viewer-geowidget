@@ -28,6 +28,8 @@
         <OutputEndpoint name="location_event"     type="text" label="Location LongLat" friendcode="location"/>
         <OutputEndpoint name="center_event"       type="text" label="Center LongLat"   friendcode="location"/>
         <OutputEndpoint name="feature_info_event" type="text" label="Feature info"     friendcode="feature_info"/>
+        <OutputEndpoint name="legend_url"         type="text" label="Url de leyenda"   friendcode="url"/>
+
     </Platform.Wiring>
 
     <Platform.Link>

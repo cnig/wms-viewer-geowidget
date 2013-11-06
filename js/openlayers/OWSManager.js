@@ -346,11 +346,11 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
                 table.appendChild(this._createTableRow(_("Abstract"), document.createTextNode(layerInfo.getAbstract())));
             }
 
-            if (layerInfo.getLegendUrl()) {
+            /*if (layerInfo.getLegendUrl()) {
                 var img = document.createElement("img");
                 img.src = layerInfo.getLegendUrl();
                 table.appendChild(this._createTableRow(_("Legend"), img));
-            }
+            }*/
 
             $(table.lastChild).addClassName("last");
             infoDiv.appendChild(table);

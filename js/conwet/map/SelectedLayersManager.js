@@ -546,9 +546,10 @@ conwet.map.SelectedLayersManager = Class.create({
         }
 
         if (layerInfo.getLegendUrl()) {
-            var img = document.createElement("img");
-            img.src = layerInfo.getLegendUrl();
-            table.appendChild(this._createTableRow(_("Legend"), img));
+            this.gadget.legendUrl.send(layerInfo.getLegendUrl());
+            //var img = document.createElement("img");
+            //img.src = layerInfo.getLegendUrl();
+            //table.appendChild(this._createTableRow(_("Legend"), img));
         }
 
         $(table.lastChild).addClassName("last");
