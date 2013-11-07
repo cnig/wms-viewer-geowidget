@@ -51,8 +51,8 @@ conwet.map.ProjectionTransformer = Class.create({
     },
 
     getMaxExtent: function(projection) {
-        var bbox = [-20037508.34, -20037508.34, 20037508.34, 20037508.34];
-        return this.getExtent(bbox, 'EPSG:900913', projection);
+        var bbox = [-180,-90,180,90];
+        return this.getExtent(bbox, 'EPSG:4326', projection);
     },
 
     getExtent: function(bbox, proj1, proj2) {

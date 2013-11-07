@@ -438,7 +438,7 @@ conwet.map.SelectedLayersManager = Class.create({
         if (isWmsc){
             this.map.maxExtent = layerInfo.getMaxExtent(projection);
         }else
-            this.map.maxExtent = layerInfo.getMaxExtent(projection);//layerInfo.getExtent(projection);
+            this.map.maxExtent = layerInfo.getExtent(projection);//layerInfo.getExtent(projection);
         
         this.map.projection = projection;
         return newcenter;

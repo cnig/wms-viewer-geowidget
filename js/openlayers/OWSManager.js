@@ -101,6 +101,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         });
         controlHeader.appendChild(serversButton);
 
+        //Div that contains all. Is in the servers tab
         var serversContainer = document.createElement("div");
         $(serversContainer).addClassName("tab_container");
         $(serversContainer).addClassName("tab_servers");
@@ -110,14 +111,27 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
 
         serversContainer.appendChild(document.createTextNode("WMS Server"));
 
+
+        var servDiv = document.createElement("div");
+        servDiv.id = "servDiv";
+        servDiv.style.display = "inline";
         this.serverSelect = new StyledElements.StyledSelect();
         this.serverSelect.textDiv.hide();
         this.serverSelect.addEventListener('change', this._sendGetCapabilities.bind(this));
-        this.serverSelect.insertInto(serversContainer);
-        this.serverSelect.addEntries([{label: _('Select a server'), value: ''}]);
+        this.serverSelect.insertInto(servDiv);        
+
+        this.serverSelect.addEntries([{label: _('- Select a server -'), value: ''}]);
+
+        var removeButton = document.createElement('button');
+        removeButton.observe("mousedown", this.removeService.bind(this));
+        removeButton.appendChild(document.createTextNode(_('X')));        
+        servDiv.appendChild(removeButton);
+        
+        serversContainer.appendChild(servDiv);
 
 
         this.serverForm = document.createElement("div");
+        this.serverForm.style.clear = "both";
         serversContainer.appendChild(this.serverForm);
 
         // Selected layers
@@ -136,25 +150,8 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         this.selectedLayersManager.addLayer(googleMap, "EPSG:900913", true, true);
         this.selectedLayersManager.addLayer(new OpenLayers.Layer.OSM("Simple OSM Map"), "EPSG:900913", true, true);
 
-        /*var idee = new OpenLayers.Layer.WMS("IGN: Todas las capas(q)", "http://www.ign.es/wms-inspire/ign-base", {
-            layers: "IGNBaseTodo",
-            format: "image/png",
-            TRANSPARENT: false,
-            EXCEPTIONS: 'application/vnd.ogc.se_inimage',
-            projection: new OpenLayers.Projection("EPSG:4326"),
-            isBaseLayer: true});
-        this.selectedLayersManager.addLayer(idee, "EPSG: 4326", true, true);*/
         this.serverSelect.addEntries(this.initialServers);
         this.preloadWmsLayer("Mapa base de España", "http://www.ign.es/wms-inspire/ign-base", "IGNBaseTodo", "EPSG:4258");
-
-
-        /*this._addWMSLayer(
-         this.serverSelect.getValue(),
-         JSON.parse(layerSelect.getValue()),
-         projectionSelect.getValue(),
-         imageFormatSelect.getValue(),
-         baseLayerButton.checked
-         );*/
 
         //TODO si no hay nada configurado
         this.showTab(this.TAB_SERVERS);
@@ -347,10 +344,10 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
             }
 
             /*if (layerInfo.getLegendUrl()) {
-                var img = document.createElement("img");
-                img.src = layerInfo.getLegendUrl();
-                table.appendChild(this._createTableRow(_("Legend"), img));
-            }*/
+             var img = document.createElement("img");
+             img.src = layerInfo.getLegendUrl();
+             table.appendChild(this._createTableRow(_("Legend"), img));
+             }*/
 
             $(table.lastChild).addClassName("last");
             infoDiv.appendChild(table);
@@ -567,9 +564,9 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
                 var service = this.wmsManager.getService(serverUrl);
                 var layers = service.getLayers();
                 var layer;
-                
-                for (var i=0; i<layers.length; i++){
-                    if (layers[i].layer.name == layerTitle){
+
+                for (var i = 0; i < layers.length; i++) {
+                    if (layers[i].layer.name == layerTitle) {
                         layer = layers[i];
                         break;
                     }
@@ -582,6 +579,20 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
             }.bind(this)
         });
 
+    },
+    removeService: function() {
+        var url = this.serverSelect.getValue();
+        
+        if (url != '') {
+            var indice = this._serverIndex(url);
+            this.initialServers.splice(indice,1)
+    
+            MashupPlatform.widget.getVariable("services").set(Object.toJSON(this.initialServers));
+            this.serverSelect.clear();
+            this.serverSelect.addEntries([{label: _('- Select a server -'), value: ''}]);
+            this.serverSelect.addEntries(this.initialServers);
+            this.serverForm.innerHTML="";
+        }
     },
     /** @final @type String */
     CLASS_NAME: "OpenLayers.Control.OWSManager"
