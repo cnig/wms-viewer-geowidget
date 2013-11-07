@@ -581,8 +581,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
 
     },
     removeService: function() {
-        var url = this.serverSelect.getValue();
-        
+        var url = this.serverSelect.getValue();      
         if (url != '') {
             var indice = this._serverIndex(url);
             this.initialServers.splice(indice,1)
