@@ -118,15 +118,15 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         this.serverSelect = new StyledElements.StyledSelect();
         this.serverSelect.textDiv.hide();
         this.serverSelect.addEventListener('change', this._sendGetCapabilities.bind(this));
-        this.serverSelect.insertInto(servDiv);        
+        this.serverSelect.insertInto(servDiv);
 
         this.serverSelect.addEntries([{label: _('- Select a server -'), value: ''}]);
 
         var removeButton = document.createElement('button');
         removeButton.observe("mousedown", this.removeService.bind(this));
-        removeButton.appendChild(document.createTextNode(_('X')));        
+        removeButton.appendChild(document.createTextNode(_('X')));
         servDiv.appendChild(removeButton);
-        
+
         serversContainer.appendChild(servDiv);
 
 
@@ -237,13 +237,13 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
     },
     _parseGetCapabilities: function(baseURL, ajaxResponse, isWmsc, init) {
         var xml;
-        if (!("responseXML" in ajaxResponse)) {
+        if (ajaxResponse.responseXML == null) {
             var text = ajaxResponse.responseText;
             text = text.replace(/<!--.*?-->/g, '');                         // Helped with ESA server
             text = text.replace(/\[.<!.*?>.\]/g, '');                       // Helped with ESA server
             text = text.replace(/<GetTileService>.*?GetTileService>/g, ''); // Skip NASA DTD error
 
-            xml = EzWebExt.XML.parseFromString(text, 'application/xml', true);
+            xml = this.parseDOMFromString(text, 'application/xml', true);
 
             if (xml == null || typeof xml != 'object')
                 return this.gadget.showError('Incorrect content: check your WMS url');
@@ -328,19 +328,18 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         //Function that shows a table with data from the WMS Service
         var showtable = function(select) {
 
-            var layer = JSON.parse(select.getValue());
-            var layerInfo = service.getLayer(layer.layer.name);
+            var layer = service.getLayer(select.getValue());
             infoDiv.innerHTML = "";
 
             var table = document.createElement("table");
             table.cellSpacing = 0;
             table.appendChild(this._createTableRow(_("Service"), document.createTextNode(service.getTitle())));
-            table.appendChild(this._createTableRow(_("Title"), document.createTextNode(layerInfo.getTitle())));
-            table.appendChild(this._createTableRow(_("Queryable"), document.createTextNode((layerInfo.isQueryable()) ? _("Yes") : _("No"))));
-            table.appendChild(this._createTableRow(_("Name"), document.createTextNode(layerInfo.getName())));
+            table.appendChild(this._createTableRow(_("Title"), document.createTextNode(layer.getTitle())));
+            table.appendChild(this._createTableRow(_("Queryable"), document.createTextNode((layer.isQueryable()) ? _("Yes") : _("No"))));
+            table.appendChild(this._createTableRow(_("Name"), document.createTextNode(layer.getName())));
 
-            if (layerInfo.getAbstract()) {
-                table.appendChild(this._createTableRow(_("Abstract"), document.createTextNode(layerInfo.getAbstract())));
+            if (layer.getAbstract()) {
+                table.appendChild(this._createTableRow(_("Abstract"), document.createTextNode(layer.getAbstract())));
             }
 
             /*if (layerInfo.getLegendUrl()) {
@@ -354,7 +353,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
 
             projectionSelect.clear();
             imageFormatSelect.clear();
-            this._addProjections(projectionSelect, JSON.parse(layerSelect.getValue()).projections);
+            this._addProjections(projectionSelect, layer.projections);
             this._addFormats(imageFormatSelect, layer.formats);
         }.bind(this);
 
@@ -363,12 +362,13 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         var layers = service.getLayers();
         for (var i = 0; i < layers.length; i++) {
             var layer = layers[i];
-            layerSelect.addEntries([{label: layer.getTitle() + ((layer.isQueryable()) ? _(' (q)') : ''), value: JSON.stringify(layer)}]);
+            if (layer.getName() != null) {
+                layerSelect.addEntries([{label: layer.getTitle() + ((layer.isQueryable()) ? _(' (q)') : ''), value: layer.getName()}]);
+            }
         }
 
         // Add projections
-        var a = layerSelect.getValue();
-        var b = JSON.parse(a);
+        var b = service.getLayer(layerSelect.getValue());
         this._addProjections(projectionSelect, b.projections);
 
         // Add formats
@@ -399,9 +399,10 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         // Add button
         var addButton = document.createElement('button');
         $(addButton).observe("mousedown", function() {
+            var layer = service.getLayer(layerSelect.getValue());
             this._addWMSLayer(
                     this.serverSelect.getValue(),
-                    JSON.parse(layerSelect.getValue()),
+                    layer,
                     projectionSelect.getValue(),
                     imageFormatSelect.getValue(),
                     baseLayerButton.checked
@@ -432,9 +433,9 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
     _addProjections: function(select, projections) {
         select.clear();
         for (var i = 0; i < projections.length; i++) {
-            //if (projections[i] in Proj4js.defs) {
+            if (projections[i] != "EPSG:0") {
             select.addEntries([{label: projections[i], value: projections[i]}]);
-            //}
+            }
         }
     },
     _addFormats: function(select, formats) {
@@ -448,7 +449,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         layer.addFeatures((new OpenLayers.Format.GeoJSON()).read(json));
         this.map.addLayer(layer);
     },
-    _addWMSLayer: function(url, layer, projection, imageType, isBaseLayer, init) {
+    _addWMSLayer: function(url, layer, projection, imageType, isBaseLayer, init, last) {
         if (url.indexOf('?') == -1) {
             url = url + '?';
         } else {
@@ -495,7 +496,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
                 TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
                 EXCEPTIONS: 'application/vnd.ogc.se_inimage',
                 projection: new OpenLayers.Projection(projection),
-            }), projection, isBaseLayer, init);
+            }), projection, isBaseLayer, init, last);
 
         } else {
             var resolutions;
@@ -571,7 +572,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
                         break;
                     }
                 }
-                this._addWMSLayer(serverUrl, layer, projection, "image/jpeg", true, true);
+                this._addWMSLayer(serverUrl, layer, projection, "image/jpeg", true, true, true);
 
             }.bind(this),
             onFailure: function() {
@@ -581,17 +582,35 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
 
     },
     removeService: function() {
-        var url = this.serverSelect.getValue();      
+        var url = this.serverSelect.getValue();
         if (url != '') {
             var indice = this._serverIndex(url);
-            this.initialServers.splice(indice,1)
-    
+            this.initialServers.splice(indice, 1)
+
             MashupPlatform.widget.getVariable("services").set(Object.toJSON(this.initialServers));
             this.serverSelect.clear();
             this.serverSelect.addEntries([{label: _('- Select a server -'), value: ''}]);
             this.serverSelect.addEntries(this.initialServers);
-            this.serverForm.innerHTML="";
+            this.serverForm.innerHTML = "";
         }
+    },
+    parseDOMFromString: function(text, type, fromAjax) {
+        var result, new_header, parser = new DOMParser();
+
+        fromAjax = fromAjax !== undefined ? fromAjax : true;
+
+        if (fromAjax) {
+            // Remove encoding from the xml header as responseText is allways utf-8
+            result = text.match(new RegExp('<\?xml(?:[^\/]|\/[^>])*standalone="([^"]+)"(?:[^\/]|\/[^>])*\?>'));
+            if (result && (result[1] === 'yes' || result[1] === 'no')) {
+                new_header = '<?xml version="1.0" standalone="' + result[1] + '" ?>';
+            } else {
+                new_header = '<?xml version="1.0" ?>';
+            }
+            text = text.replace(/<\?xml([^\/]|\/[^>])*\?>/g, new_header);
+        }
+
+        return parser.parseFromString(text, type);
     },
     /** @final @type String */
     CLASS_NAME: "OpenLayers.Control.OWSManager"

@@ -31,7 +31,9 @@ conwet.map.MapManager = Class.create({
         this.map = new OpenLayers.Map($('map'),{            
             controls: [],
             displayProjection: new OpenLayers.Projection("EPSG:4326"),
-            zoomDuration: 10           
+            tileSize: new OpenLayers.Size(128,128),
+            zoomDuration: 10,
+            fractionalZoom: true            
         });
         
         this.cursorManager = options.cursorManager;
@@ -146,12 +148,14 @@ conwet.map.MapManager = Class.create({
         return this.gadget;
     },
     updateState: function(state) {
-        if ('zoom' in state) {
-            this.setZoom(state.zoom);
-        }
         if ('center' in state) {
             this.setCenter(state.center.lon, state.center.lat);
         }
+        
+        if ('zoom' in state) {
+            this.setZoom(state.zoom);
+        }
+        
     },
     setCenter: function(lon, lat) {
         var center = this.transformer.transform(new OpenLayers.LonLat(lon, lat));

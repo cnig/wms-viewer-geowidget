@@ -75,11 +75,12 @@ conwet.map.SelectedLayersManager = Class.create({
         $(this.detailsContainer).addClassName("details");
         this.parentElement.appendChild(this.detailsContainer);
     },
-    addLayer: function(layer, projection, isBaseLayer, init, last) {
+    addLayer: function(layer, projection, isBaseLayer, init) {
         var layerObj = null;
         var list = (isBaseLayer) ? this.baseLayers : this.overlays;
         var index = this._getLayerIndex(layer, isBaseLayer);
         var isOsm = (layer.CLASS_NAME == "OpenLayers.Layer.OSM");
+        var isIdee = (layer.name == "IGN: Todas las capas(q)");
         var isGoogle = (layer.CLASS_NAME == "OpenLayers.Layer.Google")
 
         if (index < 0) {
@@ -89,6 +90,9 @@ conwet.map.SelectedLayersManager = Class.create({
             }
             else if (isGoogle) {
                 layerInfo = new conwet.map.GoogleLayer(layer);
+            }
+            else if (isIdee){
+                layerInfo = new conwet.map.IdeeLayer(layer);
             }
             else {
                 var service = this.wmsManager.getService(layer.url);
@@ -274,7 +278,7 @@ conwet.map.SelectedLayersManager = Class.create({
                 this._selectBaseLayerElement(layerObj.layerElement);
                 this._updateOverlaysProjection(layerObj.projection);
                 this.map.events.triggerEvent("changebaselayer");
-                if (!init || last)
+                if (!init || isOsm)
                     layerObj.inputElement.checked = true;
             }
             else {
@@ -295,11 +299,11 @@ conwet.map.SelectedLayersManager = Class.create({
         }
 
         this._selectLayerObj(layerObj, isBaseLayer);
+
         // Set Extent
-        if (isBaseLayer && (!init || last)) {
+        if (isBaseLayer) {
             // Para evitar fallo con OSM
             setTimeout(function() {
-                this._zoomToExtent();
                 this._zoomToLayerExtent(layerObj.layerInfo);
             }.bind(this), 1000);
         }
@@ -382,7 +386,7 @@ conwet.map.SelectedLayersManager = Class.create({
             }
         }
     },
-    _zoomToExtent: function() {
+    _zoomToExtent: function(layerInfo) {
         //this.map.zoomToExtent(layerInfo.getMaxExtent());
         this.map.zoomToExtent(this.map.maxExtent);
     },
@@ -394,7 +398,7 @@ conwet.map.SelectedLayersManager = Class.create({
         for (var i = 0; i < this.overlays.length; i++) {
             var layerObj = this.overlays[i];
 
-            if (layerObj.layerInfo.projections.indexOf(this.map.projection) !== -1){
+            if (layerObj.layerInfo.projections.indexOf(this.map.projection) !== -1) {
                 layerObj.layerElement.removeClassName("disabled_layer");
                 layerObj.inputElement.disabled = false;
                 layerObj.layer.setVisibility(layerObj.inputElement.checked, true);
@@ -431,10 +435,11 @@ conwet.map.SelectedLayersManager = Class.create({
         }
         //this.maxResolution = "auto";
         //this.minResolution = "auto";
-        if (isWmsc){
+        if (isWmsc) {
             this.map.maxExtent = layerInfo.getMaxExtent(projection);
-        }else
+        } else {
             this.map.maxExtent = layerInfo.getExtent(projection);
+        }
         
         this.map.projection = projection;
         return newcenter;
@@ -486,7 +491,7 @@ conwet.map.SelectedLayersManager = Class.create({
         var layerInfo = layerObj.layerInfo;
         var layer = layerObj.layer;
 
-        if (layer.CLASS_NAME != "OpenLayers.Layer.OSM" && layer.CLASS_NAME != "OpenLayers.Layer.Google") {
+        if (layer.CLASS_NAME != "OpenLayers.Layer.OSM" && layer.CLASS_NAME != "OpenLayers.Layer.Google" && layer.name != "IGN: Todas las capas(q)") {
             var service = this.wmsManager.getService(layer.url);
             table.appendChild(this._createTableRow(_("Service"), document.createTextNode(service.getTitle())));
         }

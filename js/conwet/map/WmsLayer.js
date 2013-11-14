@@ -25,11 +25,17 @@
 use("conwet.map");
 
 conwet.map.WmsLayer = Class.create({
-    initialize: function(layer, tileSets) {
+    initialize: function(layer, version, tileSets) {
         this.layer = layer;
+        this.parent = null;
         this.formats = [];
         this.projections = [];
         this.resolutions = $H();
+        this.version = version;
+
+        if (layer.name == null) {
+            layer.formats = [];
+        }
 
         for (var i = 0; i < layer.formats.length; i++) {
             var format = layer.formats[i];
@@ -41,16 +47,7 @@ conwet.map.WmsLayer = Class.create({
             }
         }
 
-        var projs = $H(layer.bbox).keys();
-        for (var i = 0; i < projs.length; i++) {
-            var proj = projs[i];
-            if (proj == 'EPSG:4326') {
-                this.projections.unshift(proj);
-            }
-            else {
-                this.projections.push(proj);
-            }
-        }
+        this.projections = Object.keys(layer.srs);
         
         if (tileSets.length) {
             for (var i = 0; i < tileSets.length; i++) {
@@ -65,6 +62,13 @@ conwet.map.WmsLayer = Class.create({
                 this.resolutions.set(proj + format, resolutions);
             }
             console.log("hola");
+        }
+        
+        this.nestedLayers = [];
+        for (var i = 0; i < layer.nestedLayers.length; i++) {
+            var sublayer = new conwet.map.WmsLayer(layer.nestedLayers[i], this.version, []);
+            this.nestedLayers.push(sublayer);
+            sublayer.setParent(this);
         }
     },
     getName: function() {
@@ -86,8 +90,29 @@ conwet.map.WmsLayer = Class.create({
         return this.formats;
     },
     getExtent: function(srs) {
-        var transformer = new conwet.map.ProjectionTransformer();
-        return transformer.getExtent(this.layer.llbbox, 'EPSG:4326', srs);
+        var extents = null;
+        if (this.parent != null) {
+            extents = this.parent.getExtent(srs);
+            if (extents != null) {
+                return extents;
+            }
+        }
+        
+        if (srs in this.layer.bbox) {
+            var bbox = this.layer.bbox[srs].bbox;
+            if (this.version ="1.3.0")
+                bbox = new OpenLayers.Bounds(bbox[1], bbox[0], bbox[3], bbox[2]);
+            else
+                bbox = new OpenLayers.Bounds(bbox);            
+            return bbox;
+            
+        } else if (this.layer.llbbox != null) {
+            var transformer = new conwet.map.ProjectionTransformer();
+            return transformer.getExtent(this.layer.llbbox, 'EPSG:4326', srs);
+        
+        } else {
+            return null;
+        }
     },
     getMaxExtent: function(proj) {
         var transformer = new conwet.map.ProjectionTransformer();
@@ -104,6 +129,9 @@ conwet.map.WmsLayer = Class.create({
     },
     getResolutions: function(key){
         return this.resolutions.get(key);
+    },
+    setParent: function (parent) {
+        this.parent = parent;
     }
 
 });

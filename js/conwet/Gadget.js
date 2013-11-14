@@ -56,7 +56,7 @@ conwet.Gadget = Class.create({
         this.gadgetInfoSlot = new conwet.events.Slot('map_info_slot', function(state) {
             this.reacting_to_wiring_event = true;
             try {
-                this.updateState(state.evalJSON());
+                this.updateState(JSON.parse(state));
             } catch (e) {
             }
             this.reacting_to_wiring_event = false;

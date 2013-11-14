@@ -38,7 +38,7 @@ conwet.map.WmscService = Class.create({
             for (var j = 0; j < factor; j++){
                 tileSets [j] = this.wms.capability.vendorSpecific.tileSets[((j+1)*(i+1))-1];
             }
-            this.addLayer(this.wms.capability.layers[i], tileSets);
+            this.addLayer(this.wms.capability.layers[i], this.wms.version, tileSets);
             
         }
 

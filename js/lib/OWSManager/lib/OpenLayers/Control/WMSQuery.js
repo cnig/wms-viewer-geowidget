@@ -127,22 +127,42 @@ OpenLayers.Control.WMSQuery = OpenLayers.Class(OpenLayers.Control, {
                 position: position,
                 self: this
             };
-
-            var url = layer.getFullRequestString({
+            var version = serviceInfo.getVersion();
+            var bbox = layer.map.getExtent();
+            
+            var proj  = layer.map.getProjection();
+            
+            var options = {
                 REQUEST: "GetFeatureInfo",
-                EXCEPTIONS: "application/vnd.ogc.se_xml",
-                BBOX: layer.map.getExtent().toBBOX(),
-                SRS: layer.map.getProjection(),
-                X: position.x,
-                Y: position.y,
+                EXCEPTIONS: "application/vnd.ogc.se_xml",                
                 INFO_FORMAT: serviceInfo.getFeatureInfoFormat(),
                 LAYERS: layerInfo.getName(),
                 QUERY_LAYERS: layerInfo.getName(),
                 FEATURE_COUNT: 10,
                 WIDTH: layer.map.size.w,
                 HEIGHT: layer.map.size.h,
-                VERSION: serviceInfo.getVersion()
-            });
+                VERSION: version
+            }
+            
+            
+            if (version == "1.3.0") {
+                var newBox = new OpenLayers.Bounds(bbox.bottom, bbox.left, bbox.top, bbox.rigth);              
+                
+                options.BBOX = newBox.toBBOX();
+                options.I = position.x;
+                options.J = position.y
+                options.CRS = proj;
+            }
+            
+            else{
+                
+                options.BBOX = bbox.toBBOX();
+                options.X = position.x;
+                options.Y = position.y
+                options.SRS = proj;
+            }         
+            
+            var url = layer.getFullRequestString(options);
 
             MashupPlatform.http.makeRequest(url, {
                 method: 'GET',
