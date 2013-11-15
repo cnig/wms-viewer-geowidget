@@ -100,10 +100,15 @@ conwet.map.WmsLayer = Class.create({
         
         if (srs in this.layer.bbox) {
             var bbox = this.layer.bbox[srs].bbox;
-            if (this.version ="1.3.0")
-                bbox = new OpenLayers.Bounds(bbox[1], bbox[0], bbox[3], bbox[2]);
-            else
+            
+            if (this.version === "1.3.0"){
+                bbox = new OpenLayers.Bounds(bbox);
+                bbox = new OpenLayers.Bounds(bbox.toArray(true));
+            
+            }else{
                 bbox = new OpenLayers.Bounds(bbox);            
+            }
+            
             return bbox;
             
         } else if (this.layer.llbbox != null) {

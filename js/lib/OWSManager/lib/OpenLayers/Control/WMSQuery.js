@@ -146,7 +146,7 @@ OpenLayers.Control.WMSQuery = OpenLayers.Class(OpenLayers.Control, {
             
             
             if (version == "1.3.0") {
-                var newBox = new OpenLayers.Bounds(bbox.bottom, bbox.left, bbox.top, bbox.rigth);              
+                var newBox = new OpenLayers.Bounds(bbox.toArray(true));              
                 
                 options.BBOX = newBox.toBBOX();
                 options.I = position.x;
