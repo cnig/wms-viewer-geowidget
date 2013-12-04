@@ -25,18 +25,36 @@
 use("conwet.map");
 
 conwet.map.SelectedLayersManager = Class.create({
-    initialize: function(map, wmsManager, mapManager, parentElement) {
+    initialize: function(map, wmsManager, mapManager, parentElement, owsManager) {
         this.map = map;
         this.parentElement = parentElement;
         this.wmsManager = wmsManager;
         this.mapManager = mapManager;
         this.gadget = this.mapManager.getGadget();
+        this.owsManager = owsManager;
 
         this.MAX_OPACITY = 1.0;
         this.MIN_OPACITY = 0.1;
 
+
         this.baseLayers = [];
         this.overlays = [];
+
+        /* State containing what baseLayer is selected and what overlays
+         * are selected. Is an array of indexes and an index related to
+         * this.baselayers and this.overlays
+         */
+        this.state = {
+            overlays: {},
+            baseLayer: null
+        };
+
+        //Persistence
+        var statePreference = MashupPlatform.widget.getVariable("state");
+
+        if (statePreference.get() != "") {
+            this.state = JSON.parse(statePreference.get());
+        }
 
         this.baseLayersContainer = null;
         this.overlaysContainer = null;
@@ -149,6 +167,7 @@ conwet.map.SelectedLayersManager = Class.create({
                     } else {
                         layerObj.inputElement.checked = (!layerObj.inputElement.checked);
                     }
+                    this._saveState();
                     this._disableOverlays();
                 }
                 e.stop();
@@ -166,12 +185,15 @@ conwet.map.SelectedLayersManager = Class.create({
                 $(dropButton).addClassName('layer_button');
                 $(dropButton).addClassName('drop');
                 dropButton.observe("click", function(e) {
+                    var index = this.map.getLayerIndex(layerObj.layer);
                     this.map.removeLayer(layerObj.layer);
+                    this.owsManager.deleteLayer(isBaseLayer, layerObj.layer.url);
                     this._dropLayerObj(layerObj, isBaseLayer);
                     if (isBaseLayer && (!layerObj.layerElement.hasClassName("deselected_baselayer"))) {
                         this._changeBaseLayer(this.baseLayers[0]);
                         this._zoomToLayerExtent(this.baseLayers[0].layerInfo);
                     }
+                    this._saveState();
                 }.bind(this));
                 dropButton.title = _("Remove layer");
                 layerElement.appendChild(dropButton);
@@ -188,22 +210,26 @@ conwet.map.SelectedLayersManager = Class.create({
                 $(upButton).addClassName('layer_button');
                 $(upButton).addClassName("up");
                 upButton.observe("click", function(e) {
-                    var index = this.map.getLayerIndex(layerObj.layer);
-                    var nLayers = this.map.getNumLayers();
+                    var index = this.state.overlays[layerObj.layer.name].listIndex;
+                    /*var nLayers = this.map.getNumLayers();
                     var nBases = this._getNumBaseLayers();
-                    var nMarkers = this.mapManager.getNumMarkerLayers();
+                    var nMarkers = this.mapManager.getNumMarkerLayers();*/
 
-                    if (index >= (nLayers - nMarkers - 1))
+                    if (index >= this._getNumOverlays() - 1)
                         return;
 
                     this.map.raiseLayer(layerObj.layer, 1);
-                    index = this.map.getLayerIndex(layerObj.layer);
-
+                    /*index = this.map.getLayerIndex(layerObj.layer);*/
+                    //var pos = this.state.overlays[layerObj.layer.name].listIndex;
+                    this._swapPos(index + 1, index, this.overlays);
                     var parentElement = layerObj.layerElement.parentNode;
-                    var previousElement = parentElement.children[nLayers - nMarkers - 1 - index];
+                    this._saveState();
+                    var previousElement = parentElement.children[parentElement.children.length - index - 2];
                     layerObj.layerElement.remove();
                     parentElement.insertBefore(layerObj.layerElement, previousElement);
                     layerObj.layerElement.removeClassName("highlight");
+                    //this.owsManager.positionUp(layerObj.url);
+                    
                 }.bind(this));
                 upButton.title = _("Up");
                 layerElement.appendChild(upButton);
@@ -212,20 +238,22 @@ conwet.map.SelectedLayersManager = Class.create({
                 $(downButton).addClassName('layer_button');
                 $(downButton).addClassName("down");
                 downButton.observe("click", function(e) {
-                    var index = this.map.getLayerIndex(layerObj.layer);
-                    var nLayers = this.map.getNumLayers();
+                    var index = this.state.overlays[layerObj.layer.name].listIndex;
+                    /*var nLayers = this.map.getNumLayers();
                     var nBases = this._getNumBaseLayers();
-                    var nMarkers = this.mapManager.getNumMarkerLayers();
+                    var nMarkers = this.mapManager.getNumMarkerLayers();*/
 
-                    if (index <= nBases)
+                    if (index <= 0)
                         return;
 
                     this.map.raiseLayer(layerObj.layer, -1);
-                    index = this.map.getLayerIndex(layerObj.layer);
-
+                    
+                    
+                    this._swapPos(index - 1, index, this.overlays);
+                    this._saveState();
                     var parentElement = layerObj.layerElement.parentNode;
-                    if (nLayers - nMarkers - index < parentElement.children.length) {
-                        var nextElement = parentElement.children[nLayers - nMarkers - index];
+                    if (index > 0) {
+                        var nextElement = parentElement.children[parentElement.children.length - index + 1];
                         layerObj.layerElement.remove();
                         parentElement.insertBefore(layerObj.layerElement, nextElement);
                     }
@@ -235,6 +263,7 @@ conwet.map.SelectedLayersManager = Class.create({
                     }
 
                     layerObj.layerElement.removeClassName("highlight");
+                    //this.owsManager.positionDown(layerObj.url);                    
                 }.bind(this));
                 downButton.title = _("Down");
                 layerElement.appendChild(downButton);
@@ -250,14 +279,14 @@ conwet.map.SelectedLayersManager = Class.create({
             }
 
             var isWmsc = false;
-            if (isBaseLayer) {                
-                
+            if (isBaseLayer) {
+
                 if (layerObj.resolutions != null) {
                     this.map.scales = null;
                     this.map.resolutions = layerObj.resolutions;
                     this.map.maxResolution = layerObj.resolutions[0];
                     this.map.minResolution = layerObj.resolutions[layerObj.resolutions.length - 1];
-                    
+
                     isWmsc = true;
                 }
 
@@ -283,10 +312,26 @@ conwet.map.SelectedLayersManager = Class.create({
             }
 
             list.push(layerObj);
+
             this._disableOverlays();
 
             if (!init)
                 this.gadget.showMessage((isBaseLayer) ? _("Nueva capa base.") : _("Nueva capa."));
+
+            this._selectLayerObj(layerObj, isBaseLayer);
+            if (last && init)
+                this._loadState();
+
+            if (!init)
+                this._saveState();
+
+            if (isBaseLayer && (!init || last)) {
+                // Para evitar fallo con OSM
+                setTimeout(function() {
+                    this._zoomToExtent();
+                    this._zoomToLayerExtent(layerObj.layerInfo);
+                }.bind(this), 1000);
+            }
         }
         else {
             layerObj = list[index];
@@ -294,24 +339,16 @@ conwet.map.SelectedLayersManager = Class.create({
                 this.gadget.showMessage(_("La capa ya existe."));
         }
 
-        this._selectLayerObj(layerObj, isBaseLayer);
-        // Set Extent
-        if (isBaseLayer && (!init || last)) {
-            // Para evitar fallo con OSM
-            setTimeout(function() {
-                this._zoomToExtent();
-                this._zoomToLayerExtent(layerObj.layerInfo);
-            }.bind(this), 1000);
-        }
+
     },
     _setExtent: function(layer, layerInfo, projection, isWmsc) {
 
         // layer.maxExtent = layerInfo.getExtent(layer.projection, projection);
         layer.projection = projection;
         layer.units = new OpenLayers.Projection(projection).getUnits();
-        if (isWmsc){
+        if (isWmsc) {
             layer.maxExtent = layerInfo.getMaxExtent(projection);
-        }else
+        } else
             layer.maxExtext = layerInfo.getExtent(projection);
     },
     _changeBaseLayer: function(layerObj) {
@@ -375,7 +412,7 @@ conwet.map.SelectedLayersManager = Class.create({
                 layerObj.projection = projection;
                 layerObj.layer = newLayer;
 
-                this.map.removeLayer(layer);
+                //this.map.removeLayer(layer);
                 this._setExtent(newLayer, layerObj.layerInfo, layerObj.projection, false);
                 this.map.addLayer(newLayer);
                 this.map.setLayerIndex(newLayer, index);
@@ -386,20 +423,32 @@ conwet.map.SelectedLayersManager = Class.create({
         //this.map.zoomToExtent(layerInfo.getMaxExtent());
         this.map.zoomToExtent(this.map.maxExtent);
     },
-            
-     _zoomToLayerExtent: function(layerInfo){
+    _zoomToLayerExtent: function(layerInfo) {
         this.map.zoomToExtent(layerInfo.getExtent(this.map.projection));
     },
     _disableOverlays: function(projection) {
         for (var i = 0; i < this.overlays.length; i++) {
             var layerObj = this.overlays[i];
 
-            if (layerObj.layerInfo.projections.indexOf(this.map.projection) !== -1){
+            if (layerObj.layerInfo.projections.indexOf(this.map.projection) !== -1) {
+                var index = this.map.getLayerIndex(layerObj.layer);
+                
+                if (index < 0){
+                    this.map.addLayer(layerObj.layer);
+                }
+                
                 layerObj.layerElement.removeClassName("disabled_layer");
                 layerObj.inputElement.disabled = false;
                 layerObj.layer.setVisibility(layerObj.inputElement.checked, true);
+                
             }
             else {
+                var index = this.map.getLayerIndex(layerObj.layer);
+                
+                if (index > 0){
+                    //this.map.removeLayer(layerObj.layer);
+                }
+                
                 layerObj.layerElement.addClassName("disabled_layer");
                 layerObj.inputElement.disabled = true;
                 layerObj.inputElement.checked = false;
@@ -431,11 +480,11 @@ conwet.map.SelectedLayersManager = Class.create({
         }
         //this.maxResolution = "auto";
         //this.minResolution = "auto";
-        if (isWmsc){
+        if (isWmsc) {
             this.map.maxExtent = layerInfo.getMaxExtent(projection);
-        }else
+        } else
             this.map.maxExtent = layerInfo.getExtent(projection);
-        
+
         this.map.projection = projection;
         return newcenter;
     },
@@ -564,7 +613,128 @@ conwet.map.SelectedLayersManager = Class.create({
         td.appendChild(value);
         tr.appendChild(td);
         return tr;
+    },
+    createLayer: function(url, layer, projection, imageType, isBaseLayer, init, last, isWmsc) {
+        if (url.indexOf('?') == -1) {
+            url = url + '?';
+        } else {
+            if (url.charAt(url.length - 1) == '&')
+                url = url.slice(0, -1);
+        }
+
+        if (!isWmsc) {
+            this.addLayer(new OpenLayers.Layer.WMS(layer.layer.name, url, {
+                layers: layer.layer.name,
+                format: imageType,
+                TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
+                EXCEPTIONS: 'application/vnd.ogc.se_inimage',
+                projection: new OpenLayers.Projection(projection),
+            }), projection, isBaseLayer, init, last);
+
+        } else {
+            var resolutions;
+            if (typeof layer.resolutions.get == 'function') {
+                resolutions = layer.resolutions.get(projection + imageType);
+            }
+            else {
+                layer.resolutions = $H(layer.resolutions);
+                resolutions = layer.resolutions.get(projection + imageType);
+            }
+            this.addLayer(new OpenLayers.Layer.WMS(layer.layer.name, url, {
+                layers: layer.layer.name,
+                format: imageType,
+                TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
+                EXCEPTIONS: 'application/vnd.ogc.se_inimage',
+                projection: new OpenLayers.Projection(projection),
+                serverResolutions: resolutions,
+                resolutions: resolutions,
+                isBaseLayer: isBaseLayer
+            }), projection, isBaseLayer, init);
+        }
+
+    },
+    _loadState: function() {
+        if (this.state.baseLayer != null) {
+            var layerObj = this.baseLayers[this.state.baseLayer];
+            if (layerObj != null) {
+
+                this.baseLayers[this.state.baseLayer].inputElement.checked = true;
+                this._changeBaseLayer(this.baseLayers[this.state.baseLayer]);
+                setTimeout(function() {
+                    this._zoomToExtent();
+                    this._zoomToLayerExtent(layerObj.layerInfo);
+                }.bind(this), 1500);
+            }
+
+        }
+
+        for (var i = 0; i < this.overlays.length; i++) {
+            var name = this.overlays[i].layer.name;
+            this.map.setLayerIndex(this.overlays[i].layer, this.state.overlays[name].mapIndex);
+            this.overlays[i].inputElement.checked = this.state.overlays[name].checked;
+            var stateIndex = this.state.overlays[name].listIndex;
+            
+            if (stateIndex < this.overlays.length){               
+                this._swapPos(i, stateIndex, this.overlays);
+            }
+            
+        }
+        if (this.overlays.length) {
+            var parentElement = this.overlays[0].layerElement.parentNode;
+            parentElement.innerHTML = "";
+
+            for (var i = this.overlays.length; i > 0; i--) {
+                parentElement.appendChild(this.overlays[i - 1].layerElement);
+            }
+        }
+        this._updateOverlaysProjection(this.map.projection);
+        this._disableOverlays();
+    },
+    _saveState: function() {
+
+        for (var i = 0; i < this.baseLayers.length; i++) {
+            if (this.baseLayers[i].inputElement.checked) {
+                this.state.baseLayer = i;
+                break;
+            }
+        }
+
+        for (var i = 0; i < this.overlays.length; i++) {
+            var index = this.map.getLayerIndex(this.overlays[i].layer);
+            var name = this.overlays[i].layer.name;
+            this.state.overlays[name] = {
+                mapIndex: index,
+                listIndex: i,
+                checked: this.overlays[i].inputElement.checked
+            };
+
+        }
+
+        MashupPlatform.widget.getVariable("state").set(JSON.stringify(this.state));
+    },
+    _swapPos: function(a, b, array) {        
+        if (a !== b) {
+            var temp = array[a];
+            array[a] = array[b];
+            array[b] = temp;
+        }
+    },
+    deleteLayerFromState: function(layerName){
+        var listIndex = this.state.overlays[layerName].listIndex;
+        delete this.state.overlays[layerName];
+        
+        /*The indexes are updated. For example if we remove the layer that was
+         * in the position 2, we have to decrease the indexes 3 and 4 to 2 and 3
+         */
+        
+        for(var overlay in this.state.overlays) {
+            if (overlay.listIndex > listIndex){
+                overlay.listIndex--;
+            }
+        }        
+        
+        this._loadState();
     }
     
-   
+
 });

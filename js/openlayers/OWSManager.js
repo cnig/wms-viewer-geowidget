@@ -21,10 +21,24 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         this.tabsElements = [];
         this.initialServers = initialServers;
 
+        this.layersData = {
+            overlays: [],
+            baseLayers: []
+        };
+
+        var layersDataPreference = MashupPlatform.widget.getVariable("layersData");
+
+        if (layersDataPreference.get() != "") {
+            this.layersData = JSON.parse(layersDataPreference.get());
+        }
+        
+        this.numLayers = this.layersData.overlays.length + this.layersData.baseLayers.length;
+
         this.wmsManager = new conwet.map.WmsManager();
         this.mapManager = mapManager;
         this.gadget = this.mapManager.getGadget();
         this.selectedLayersManager = null;
+
     },
     setMap: function(map) {
         OpenLayers.Control.prototype.setMap.apply(this, arguments);
@@ -135,7 +149,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         serversContainer.appendChild(this.serverForm);
 
         // Selected layers
-        this.selectedLayersManager = new conwet.map.SelectedLayersManager(this.map, this.wmsManager, this.mapManager, layersContainer);
+        this.selectedLayersManager = new conwet.map.SelectedLayersManager(this.map, this.wmsManager, this.mapManager, layersContainer, this);
 
 
 
@@ -151,12 +165,15 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         this.selectedLayersManager.addLayer(new OpenLayers.Layer.OSM("Simple OSM Map"), "EPSG:900913", true, true);
 
         this.serverSelect.addEntries(this.initialServers);
-        this.preloadWmsLayer("Mapa base de España", "http://www.ign.es/wms-inspire/ign-base", "IGNBaseTodo", "EPSG:4258");
+                
+        this.preloadWmsLayer("http://www.ign.es/wms-inspire/ign-base", "IGNBaseTodo", "EPSG:4258", "image/jpeg", true);
+
 
         //TODO si no hay nada configurado
         this.showTab(this.TAB_SERVERS);
         this.showControls(false);
 
+        //this.loadSavedLayers();
         return this.div;
     },
     showControls: function(show) {
@@ -181,7 +198,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         if (this._serverIndex(url) == -1) {
             this.serverSelect.addEntries([entry]);
             this.initialServers.push({label: name, value: url, isWmsc: false});
-            MashupPlatform.widget.getVariable("services").set(Object.toJSON(this.initialServers));
+            MashupPlatform.widget.getVariable("services").set(JSON.stringify(this.initialServers));
             this.gadget.showMessage(_("Nuevo servidor añadido."));
         } else {
             this.gadget.showMessage(_("Este servidor ya existe."));
@@ -276,36 +293,6 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
             this.gadget.showError(_('Incorrect content: check your WMS url'));
         }
 
-        /*
-         //Check GetMap Formats
-         var GetMap = xml.getElementsByTagName('GetMap');
-         if (GetMap.length) {
-         var aFormats = GetMap[0].getElementsByTagName('Format');
-         var oFormats = [];
-         for (var i=0; i<aFormats.length; i++) {
-         if (aFormats[i])
-         var format = OpenLayers.Ajax.getText(aFormats[i]);
-         if (format == 'image/png' || format == 'image/jpeg' || format == 'image/gif')
-         oFormats.push(format);
-         }
-         this.aImageFormats = oFormats;
-         }
-         
-         //Check resolutionsValue for TileCache
-         var resolutions = xml.getElementsByTagName('Resolutions');
-         if (resolutions.length) {
-         var resolutionsS = OpenLayers.Ajax.getText(resolutions[0]);
-         if (resolutionsS.length) {
-         var aResolutions = resolutionsS.split(' ');
-         this.resolutionsValue = aResolutions;
-         }
-         }
-         
-         //Print Layer List
-         var aLayer = xml.getElementsByTagName('Layer');
-         if (aLayer.length > 0) {
-         this.drawLayersForm(xml);
-         }*/
     },
     _drawServersForm: function(baseURL) {
         var service = this.wmsManager.getService(baseURL);
@@ -400,6 +387,21 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         var addButton = document.createElement('button');
         $(addButton).observe("mousedown", function() {
             var layer = service.getLayer(layerSelect.getValue());
+
+            var layerData = {
+                serverUrl: this.serverSelect.getValue(),
+                layerName: layer.layer.name,
+                projection: projectionSelect.getValue(),
+                imageFormat: imageFormatSelect.getValue(),
+                isBaseLayer: baseLayerButton.checked
+            };
+            var list = (layerData.isBaseLayer) ? this.layersData.baseLayers : this.layersData.overlays;
+            
+            if (!this._existLayer(layerData.isBaseLayer, layerData.layerName)){
+                list.push(layerData);
+                MashupPlatform.widget.getVariable("layersData").set(JSON.stringify(this.layersData));
+            }            
+
             this._addWMSLayer(
                     this.serverSelect.getValue(),
                     layer,
@@ -434,7 +436,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         select.clear();
         for (var i = 0; i < projections.length; i++) {
             if (projections[i] != "EPSG:0") {
-            select.addEntries([{label: projections[i], value: projections[i]}]);
+                select.addEntries([{label: projections[i], value: projections[i]}]);
             }
         }
     },
@@ -450,74 +452,15 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         this.map.addLayer(layer);
     },
     _addWMSLayer: function(url, layer, projection, imageType, isBaseLayer, init, last) {
-        if (url.indexOf('?') == -1) {
-            url = url + '?';
-        } else {
-            if (url.charAt(url.length - 1) == '&')
-                url = url.slice(0, -1);
-        }
-
-        //check for base layer
-        var layers = this.map.layers;
-        var hasBaseLayer = false;
-        for (var i = 0; i < layers.length; i++) {
-            if (layers[i].isBaseLayer) {
-                hasBaseLayer = true;
-            }
-        }
-
-        // TODO Revisar
-        /*if (this.resolutionsValue) {
-         var aResolutions = this.resolutionsValue;
-         var minRes = aResolutions[aResolutions.length - 1];
-         var options = {
-         resolutions: aResolutions,
-         maxresolution: aResolutions[0],
-         minResolution: minRes
-         };
-         this.map.setOptions(options);
-         }
-         
-         //SRS - OL default srs is EPSG:4326 
-         /*var options = {srs: 'EPSG:4326'};
-         this.OWSManager.map.setOptions(options) ;       
-         
-         */
 
         if ((!isBaseLayer) && (imageType == 'image/jpeg'))
             return this.gadget.showError('you cannot select JPEG format for overlays, please choose another format');
 
         this.showTab(this.TAB_LAYERS);
+        var isWmsc = this._isWmsc(url.split('?')[0]);
 
-        if (!this._isWmsc(url.split('?')[0])) {
-            this.selectedLayersManager.addLayer(new OpenLayers.Layer.WMS(layer.layer.name, url, {
-                layers: layer.layer.name,
-                format: imageType,
-                TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
-                EXCEPTIONS: 'application/vnd.ogc.se_inimage',
-                projection: new OpenLayers.Projection(projection),
-            }), projection, isBaseLayer, init, last);
 
-        } else {
-            var resolutions;
-            if (typeof layer.resolutions.get == 'function') {
-                resolutions = layer.resolutions.get(projection + imageType);
-            }
-            else {
-                layer.resolutions = $H(layer.resolutions);
-                resolutions = layer.resolutions.get(projection + imageType);
-            }
-            this.selectedLayersManager.addLayer(new OpenLayers.Layer.WMS(layer.layer.name, url, {
-                layers: layer.layer.name,
-                format: imageType,
-                TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
-                EXCEPTIONS: 'application/vnd.ogc.se_inimage',
-                projection: new OpenLayers.Projection(projection),
-                serverResolutions: resolutions,
-                resolutions: resolutions,
-                isBaseLayer: isBaseLayer
-            }), projection, isBaseLayer, init);
-        }
+        this.selectedLayersManager.createLayer(url, layer, projection, imageType, isBaseLayer, init, last, isWmsc);
     },
     /*addMarkerLayer: function(layer) {
      this.selectedLayersManager.addLayer(layer, false);
@@ -555,7 +498,69 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
 
         return isWmsc;
     },
-    preloadWmsLayer: function(name, serverUrl, layerTitle, projection) {
+    /*_preloadCapabilities: function() {
+     for (var i = 0; i < this.initialServers.length; i++) {
+     
+     var baseURL = this.initialServers[i].value;
+     var isWmsc = this._isWmsc(baseURL);
+     
+     
+     if (this.serverForm) {
+     this.serverForm.innerHTML = "";
+     }
+     
+     if (baseURL.length == 0) {
+     return;
+     }
+     
+     if (baseURL.indexOf('?') == -1) {
+     baseURL = baseURL + '?';
+     } else {
+     if (baseURL.charAt(baseURL.length - 1) == '&')
+     baseURL = baseURL.slice(0, -1);
+     }
+     
+     this.gadget.showMessage(_("Solicitando datos al servidor."), true);
+     baseURL += "service=WMS&version=2.0&request=GetCapabilities";
+     
+     //TODO Gif chulo para esperar
+     MashupPlatform.http.makeRequest(baseURL, {
+     method: 'GET',
+     onSuccess: function(response) {
+     this.gadget.hideMessage();
+     this._parseGetCapabilities(baseURL, response, isWmsc, true);
+     }.bind(this),
+     onFailure: function() {
+     this.gadget.showError(_("El servidor no responde."));
+     }.bind(this)
+     });
+     }
+     },*/
+    loadSavedLayers: function() {
+        
+        //var last = (!this.layersData.baseLayers.length);
+        
+        for (var i = 0; i < this.layersData.overlays.length; i++) {
+
+            var layerData = this.layersData.overlays[i];
+           // var isLast = last && i === (this.layersData.overlays.length-1);
+
+            this.preloadWmsLayer(layerData.serverUrl, layerData.layerName, layerData.projection,
+                    layerData.imageFormat, layerData.isBaseLayer, true);
+        }
+
+        for (var i = 0; i < this.layersData.baseLayers.length; i++) {
+
+            var layerData = this.layersData.baseLayers[i];
+
+            this.preloadWmsLayer(layerData.serverUrl, layerData.layerName, layerData.projection,
+                    layerData.imageFormat, layerData.isBaseLayer, //(i === this.layersData.baseLayers.length - 1));
+                    true);
+        }
+
+
+    },
+    preloadWmsLayer: function(serverUrl, layerName, projection, imageFormat, isBaseLayer) {
         var url = serverUrl + "?service=WMS&version=2.0&request=GetCapabilities";
         MashupPlatform.http.makeRequest(url, {
             method: 'GET',
@@ -567,16 +572,26 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
                 var layer;
 
                 for (var i = 0; i < layers.length; i++) {
-                    if (layers[i].layer.name == layerTitle) {
+                    if (layers[i].layer.name === layerName) {
                         layer = layers[i];
                         break;
                     }
                 }
-                this._addWMSLayer(serverUrl, layer, projection, "image/jpeg", true, true, true);
+                if (layerName !== "IGNBaseTodo") {
+                    this.numLayers--;
+                }
+                this._addWMSLayer(serverUrl, layer, projection, imageFormat, isBaseLayer, true, !(this.numLayers));           
+                
+                
+                if (layerName == "IGNBaseTodo") {
+                    this.loadSavedLayers();
+                    /*this.selectedLayersManager.deleteLayerFromState(layerName, isBaseLayer);*/
+                }
 
             }.bind(this),
             onFailure: function() {
                 this.gadget.showError(_("El servidor no responde."));
+                 this.selectedLayersManager.deleteLayerFromState(layerName);
             }.bind(this)
         });
 
@@ -612,11 +627,69 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
 
         return parser.parseFromString(text, type);
     },
-    /** @final @type String */
+    
+    deleteLayer: function(isBaseLayer, url) {
+        if (isBaseLayer) {
+            for (var i = 0; i < this.layersData.baseLayers.length; i++) {
+                if (this.layersData.baseLayers[i].serverUrl === url.split('?')[0]) {
+                    this.layersData.baseLayers.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
+        else {
+            for (var i = 0; i < this.layersData.overlays.length; i++) {
+                if (this.layersData.overlays[i].serverUrl === url.split('?')[0]) {
+                    this.layersData.overlays.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
+        MashupPlatform.widget.getVariable("layersData").set(JSON.stringify(this.layersData));
+    },
+    positionUp: function(url) {
+
+        for (var i = 0; i < this.layersData.baseLayers.length; i++) {
+            if (this.layersData.overlays[i].serverUrl === url.split('?')[0]) {
+                var layerData = this.layersData.overlays[i + 1];
+                this.layersData.overlays[i + 1] = this.layersData.overlays[i];
+                this.layersData.overlays[i] = layerData;
+            }
+        }
+
+        MashupPlatform.widget.getVariable("layersData").set(JSON.stringify(this.layersData));
+    },
+    positionDown: function(url) {
+
+        for (var i = 0; i < this.layersData.baseLayers.length; i++) {
+            if (this.layersData.overlays[i].serverUrl === url.split('?')[0]) {
+                var layerData = this.layersData.overlays[i - 1];
+                this.layersData.overlays[i - 1] = this.layersData.overlays[i];
+                this.layersData.overlays[i] = layerData;
+            }
+        }
+
+        MashupPlatform.widget.getVariable("layersData").set(JSON.stringify(this.layersData));
+    },
+            
+    _existLayer: function(isBaseLayer, layerName){
+    
+        var list = (isBaseLayer) ? this.layersData.baseLayers : this.layersData.overlays;
+        for (var i = 0; i < list.length; i++) {            
+            if (list[i].layerName === layerName){
+                return true;               
+             }
+        }
+        return false;
+    },
+            /** @final @type String */
     CLASS_NAME: "OpenLayers.Control.OWSManager"
 
-
 });
+
+
 
 /** Sarissa derived getParseErrorText
  
