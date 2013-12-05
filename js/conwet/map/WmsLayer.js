@@ -100,13 +100,13 @@ conwet.map.WmsLayer = Class.create({
         
         if (srs in this.layer.bbox) {
             var bbox = this.layer.bbox[srs].bbox;
-            
-            if (this.version === "1.3.0"){
-                bbox = new OpenLayers.Bounds(bbox);
-                bbox = new OpenLayers.Bounds(bbox.toArray(true));
-            
-            }else{
-                bbox = new OpenLayers.Bounds(bbox);            
+            bbox = new OpenLayers.Bounds(bbox);
+           
+            if (this.version === "1.3.0"){                               
+                var change = ["EPSG:4230", "EPSG:4326", "EPSG:4258"];
+                if (change.indexOf(srs)!==-1){
+                    bbox = new OpenLayers.Bounds(bbox.toArray(true));
+                }
             }
             
             return bbox;
