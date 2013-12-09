@@ -5,7 +5,7 @@
         <Vendor>CoNWeT</Vendor>
         <Name>wms-viewer-geowidget</Name>
         <DisplayName>Web Map Service</DisplayName>
-        <Version>0.4.5</Version>
+        <Version>0.4.6</Version>
         <Author>jmostazo</Author>
         <Mail>jmostazo@fi.upm.es</Mail>
         <Description> This widget gives users the ability to handle different map layers coming from several sources, showing all of them on the same map. It has a bunch of both events and slots that enables the user to have different instances of this widget wired, so she can compare with different cartographies at a glance.</Description>
@@ -23,7 +23,7 @@
     <Platform.Wiring>
         <InputEndpoint name="map_info_slot"       type="text" label="Map info"         friendcode="map_info"/>
         <InputEndpoint name="wms_service_slot"    type="text" label="WMS info"         friendcode="service_info"/>
-        <InputEndpoint name="location_slot"       type="text" label="Location"         friendcode="location"/>
+        <InputEndpoint name="location_slot"       type="text" label="Highlight Location"         friendcode="location"/>
         <InputEndpoint name="location_info_slot"  type="text" label="Location info"    friendcode="location_info"/>
         <InputEndpoint name="locations_info_slot"  type="text" label="Locations info"    friendcode="location_info"/>
 
