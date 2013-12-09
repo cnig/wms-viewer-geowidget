@@ -170,3 +170,7 @@ html, body {
     max-width: 240px;
     float: left;
 }
+
+.styled_select > div > .text {
+   display: none;
+}

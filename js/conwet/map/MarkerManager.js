@@ -140,15 +140,15 @@ conwet.map.MarkerManager = Class.create({
         }
     },*/
 
-    setMarker: function(lonlat, title, text, type, popup, onClick) {
+    setMarker: function(lonlat, title, text, type, popup, center, onClick) {
         /*if ((type == OpenLayers.AdvancedMarker.QUERY_MARKER) || (type == OpenLayers.AdvancedMarker.EVENT_MARKER)) {
             this._removeTemporalMarkers();
         }*/ // TODO Gestion de POIs
         //this._removeAllMarkers();
-        this._setMarker(lonlat, title, text, type, popup, onClick);
+        this._setMarker(lonlat, title, text, type, popup, center, onClick);
     },
 
-    _setMarker: function(lonlat, title, text, type, popup, onClick) {
+    _setMarker: function(lonlat, title, text, type, popup, onClick, center) {
         var marker = this._getExistingMarker(lonlat); // Si el marcador ya existe
         if (marker != null) {
             this._updateMarker(marker, title, text, type, onClick);
@@ -169,7 +169,7 @@ conwet.map.MarkerManager = Class.create({
             markersLayer.addMarker(marker);
         }
 
-        if (type == OpenLayers.AdvancedMarker.EVENT_MARKER) {
+        if (type == OpenLayers.AdvancedMarker.EVENT_MARKER && center) {
             marker.centerInMap();
         }
 

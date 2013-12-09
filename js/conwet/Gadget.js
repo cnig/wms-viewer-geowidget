@@ -41,6 +41,12 @@ conwet.Gadget = Class.create({
                 this.setInfoMarker(location);
             }
         }.bind(this));
+        this.locationsInfoSlot = new conwet.events.Slot('locations_info_slot', function(location) {
+            location = JSON.parse(location);
+            if (typeof location == 'object') {
+                this.setInfoMarkers(location);
+            }
+        }.bind(this));
 
         this.wmsServiceSlot = new conwet.events.Slot('wms_service_slot', function(service) {
             service = JSON.parse(service);
@@ -141,10 +147,18 @@ conwet.Gadget = Class.create({
             if (positionInfos[0].bbox != null)
                 this.mapManager.setBox(positionInfos[0]);
             else
-                this.mapManager.setEventMarker(positionInfos);
+                this.mapManager.setEventMarker(positionInfos[0]);
         }
     },
-    _disableOtherCursors: function() {
+    setInfoMarkers: function(positionInfos) {
+        if (positionInfos.length) {
+            if (positionInfos[0].bbox != null)
+                this.mapManager.setBox(positionInfos[0]);
+            else
+                this.mapManager.setEventMarkers(positionInfos);
+        }
+    },
+            _disableOtherCursors: function() {
         this.sendState({'focus': true});
     },
     _moveOtherCursors: function(x, y) {

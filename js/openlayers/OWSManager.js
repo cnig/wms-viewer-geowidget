@@ -152,7 +152,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         servDiv.id = "servDiv";
         servDiv.style.display = "inline";
         this.serverSelect = new StyledElements.StyledSelect();
-        this.serverSelect.textDiv.hide();
+       
         this.serverSelect.addEventListener('change', this._sendGetCapabilities.bind(this));
         this.serverSelect.insertInto(servDiv);
 
@@ -161,7 +161,10 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         var removeButton = document.createElement('button');
         removeButton.observe("mousedown", this.removeService.bind(this));
         removeButton.appendChild(document.createTextNode(_('X')));
-        servDiv.appendChild(removeButton);
+        var span = document.createElement('span');
+        span.title ="Borrar Servidor";
+        span.appendChild(removeButton)
+        servDiv.appendChild(span);
 
         serversContainer.appendChild(servDiv);
 
@@ -436,17 +439,17 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
 
         // Create UI
         this.serverForm.appendChild(document.createTextNode('Layer'));
-        layerSelect.textDiv.hide();
+        
         layerSelect.insertInto(this.serverForm);
 
 
         projectionDiv.appendChild(document.createTextNode('Projection'));
-        projectionSelect.textDiv.hide();
+        
         projectionSelect.insertInto(projectionDiv);
         this.serverForm.appendChild(projectionDiv);
 
         this.serverForm.appendChild(document.createTextNode('Image Format'));
-        imageFormatSelect.textDiv.hide();
+      
         imageFormatSelect.insertInto(this.serverForm);
         showtable(layerSelect);
         this.serverForm.appendChild(baseLayerButton);

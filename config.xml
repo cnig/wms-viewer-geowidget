@@ -25,6 +25,7 @@
         <InputEndpoint name="wms_service_slot"    type="text" label="WMS info"         friendcode="service_info"/>
         <InputEndpoint name="location_slot"       type="text" label="Location"         friendcode="location"/>
         <InputEndpoint name="location_info_slot"  type="text" label="Location info"    friendcode="location_info"/>
+        <InputEndpoint name="locations_info_slot"  type="text" label="Locations info"    friendcode="location_info"/>
 
         <OutputEndpoint name="map_info_event"     type="text" label="Map info"         friendcode="map_info"/>
         <OutputEndpoint name="location_event"     type="text" label="Location LongLat" friendcode="location"/>

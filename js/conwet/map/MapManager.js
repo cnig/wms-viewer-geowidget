@@ -31,14 +31,14 @@ conwet.map.MapManager = Class.create({
     initialize: function(gadget, options) {
         this.transformer = new conwet.map.ProjectionTransformer();
         this.gadget = gadget;
-        this.map = new OpenLayers.Map($('map'),{            
+        this.map = new OpenLayers.Map($('map'), {
             controls: [],
             displayProjection: new OpenLayers.Projection("EPSG:4326"),
-            tileSize: new OpenLayers.Size(128,128),
+            tileSize: new OpenLayers.Size(128, 128),
             zoomDuration: 10
-            //fractionalZoom: true            
+                    //fractionalZoom: true            
         });
-        
+
         this.cursorManager = options.cursorManager;
         this.cursorManager.setMap(this.map);
         this.transformer.setMap(this.map);
@@ -60,9 +60,9 @@ conwet.map.MapManager = Class.create({
         //this.map.addControl(new OpenLayers.Control.OverviewMap());
 
         //this.map.addControl(new OpenLayers.Control.MyScale()); //ScaleLine
-        this.map.addControl(new OpenLayers.Control.ScaleLine({geodesic:true})); //    
-       
-        
+        this.map.addControl(new OpenLayers.Control.ScaleLine({geodesic: true})); //    
+
+
         // OWSManager
         var initialServers = [];
 
@@ -106,18 +106,18 @@ conwet.map.MapManager = Class.create({
 
         // Map Events
         this.map.events.register("moveend", this, function() {
-            var changes = {};            
+            var changes = {};
 
             var center = this.transformer.normalize(this.map.getCenter());
             var zoomLevel = this.map.getZoom();
-         
+
             if (this.zoomLevel != zoomLevel) {
                 this.zoomLevel = zoomLevel;
                 var zoom = zoomLevel / this.getNumZoomLevels();
                 this.zoomBar.setZoom(zoom);
                 changes["zoom"] = zoom;
             }
-            
+
             if (!conwet.map.ProjectionTransformer.compareLonlat(this.center, center)) {
                 this.center = center;
                 changes['center'] = center;
@@ -145,7 +145,7 @@ conwet.map.MapManager = Class.create({
                 this.mousePosition.activate();
             }
         });
-        this.map.events.register('mouseout', this.mousePosition, this.mousePosition.deactivate);        
+        this.map.events.register('mouseout', this.mousePosition, this.mousePosition.deactivate);
     },
     getGadget: function() {
         return this.gadget;
@@ -154,16 +154,16 @@ conwet.map.MapManager = Class.create({
         if ('center' in state) {
             this.setCenter(state.center.lon, state.center.lat);
         }
-        
+
         if ('zoom' in state) {
             this.setZoom(state.zoom);
         }
-        
+
     },
     setCenter: function(lon, lat) {
         var center = this.transformer.transform(new OpenLayers.LonLat(lon, lat));
         if (!conwet.map.ProjectionTransformer.compareLonlat(this.center, center)) {
-            
+
             this.map.setCenter(center, this.map.zoom, false);
         }
     },
@@ -217,29 +217,35 @@ conwet.map.MapManager = Class.create({
 
         this._setMarker(new OpenLayers.LonLat(lon, lat), title, text, OpenLayers.AdvancedMarker.USER_MARKER, true);
     },
-    setEventMarker: function(positionInfos) {
+    setEventMarkers: function(positionInfos) {
         this.markerManager.eventMarkers.clearMarkers();
-        for (var i = 0; i < positionInfos.length; i++){
+
+        for (var i = 0; i < positionInfos.length; i++) {
             var location = positionInfos[i];
-            this._setMarker(this.transformer.transform(new OpenLayers.LonLat(location.lon, location.lat)), location.title, "", OpenLayers.AdvancedMarker.EVENT_MARKER, true)
-        };
+            this._setMarker(this.transformer.transform(new OpenLayers.LonLat(location.lon, location.lat)), location.title, "", OpenLayers.AdvancedMarker.EVENT_MARKER, true, false);
+        }
+        
     },
-            
-    setHighlightMarker: function(lonlat){
+    setEventMarker: function(positionInfo) {
+
+        var location = positionInfo;
+        this._setMarker(this.transformer.transform(new OpenLayers.LonLat(location.lon, location.lat)), location.title, "", OpenLayers.AdvancedMarker.EVENT_MARKER, true, true)
+
+    },
+            setHighlightMarker: function(lonlat) {
         this.markerManager.setHighlightMarker(this.transformer.transform(new OpenLayers.LonLat(lonlat.lon, lonlat.lat)));
     },
-            
     setQueryMarker: function(lon, lat, title, text) {
         text = (arguments.length > 4) ? text : "";
         title = (arguments.length > 3) ? title : "";
 
         this._setMarker(this.transformer.transform(new OpenLayers.LonLat(lon, lat)), title, text, OpenLayers.AdvancedMarker.QUERY_MARKER, true);
     },
-    _setMarker: function(lonlat, title, text, type, popup, onClick) {
+    _setMarker: function(lonlat, title, text, type, popup, center, onClick) {
         onClick = (arguments.length > 6) ? onClick : function() {
         };
 
-        this.markerManager.setMarker(lonlat, title, text, type, popup, function(marker) {
+        this.markerManager.setMarker(lonlat, title, text, type, popup, center, function(marker) {
             var ll = this.transformer.normalize(lonlat);
             onClick(marker);
             this.getGadget().sendLocation(ll.lon, ll.lat);
@@ -248,17 +254,15 @@ conwet.map.MapManager = Class.create({
     getNumMarkerLayers: function() {
         return this.markerManager.getNumLayers();
     },
-    
-    setBox: function (locationInfo){
+    setBox: function(locationInfo) {
         this.markerManager.setBox(locationInfo);
     },
-    
-    getNumZoomLevels: function(){
+    getNumZoomLevels: function() {
         var lvls = 0;
-        if (this.map.scales!=null){
+        if (this.map.scales != null) {
             lvls = this.map.scales.length;
         }
-        else if(this.map.resolutions != null){
+        else if (this.map.resolutions != null) {
             lvls = this.map.resolutions.length;
         }
         return lvls;
