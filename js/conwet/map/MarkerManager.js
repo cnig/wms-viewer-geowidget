@@ -148,7 +148,7 @@ conwet.map.MarkerManager = Class.create({
         this._setMarker(lonlat, title, text, type, popup, center, onClick);
     },
 
-    _setMarker: function(lonlat, title, text, type, popup, onClick, center) {
+    _setMarker: function(lonlat, title, text, type, popup, center, onClick) {
         var marker = this._getExistingMarker(lonlat); // Si el marcador ya existe
         if (marker != null) {
             this._updateMarker(marker, title, text, type, onClick);
