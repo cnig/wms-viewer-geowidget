@@ -215,8 +215,8 @@ conwet.map.SelectedLayersManager = Class.create({
                 upButton.observe("click", function(e) {
                     var index = this.state.overlays[layerObj.layer.name].listIndex;
                     /*var nLayers = this.map.getNumLayers();
-                    var nBases = this._getNumBaseLayers();
-                    var nMarkers = this.mapManager.getNumMarkerLayers();*/
+                     var nBases = this._getNumBaseLayers();
+                     var nMarkers = this.mapManager.getNumMarkerLayers();*/
 
                     if (index >= this._getNumOverlays() - 1)
                         return;
@@ -232,7 +232,7 @@ conwet.map.SelectedLayersManager = Class.create({
                     parentElement.insertBefore(layerObj.layerElement, previousElement);
                     layerObj.layerElement.removeClassName("highlight");
                     //this.owsManager.positionUp(layerObj.url);
-                    
+
                 }.bind(this));
                 upButton.title = _("Up");
                 layerElement.appendChild(upButton);
@@ -243,15 +243,15 @@ conwet.map.SelectedLayersManager = Class.create({
                 downButton.observe("click", function(e) {
                     var index = this.state.overlays[layerObj.layer.name].listIndex;
                     /*var nLayers = this.map.getNumLayers();
-                    var nBases = this._getNumBaseLayers();
-                    var nMarkers = this.mapManager.getNumMarkerLayers();*/
+                     var nBases = this._getNumBaseLayers();
+                     var nMarkers = this.mapManager.getNumMarkerLayers();*/
 
                     if (index <= 0)
                         return;
 
                     this.map.raiseLayer(layerObj.layer, -1);
-                    
-                    
+
+
                     this._swapPos(index - 1, index, this.overlays);
                     this._saveState();
                     var parentElement = layerObj.layerElement.parentNode;
@@ -435,23 +435,23 @@ conwet.map.SelectedLayersManager = Class.create({
 
             if (layerObj.layerInfo.projections.indexOf(this.map.projection) !== -1) {
                 var index = this.map.getLayerIndex(layerObj.layer);
-                
-                if (index < 0){
+
+                if (index < 0) {
                     this.map.addLayer(layerObj.layer);
                 }
-                
+
                 layerObj.layerElement.removeClassName("disabled_layer");
                 layerObj.inputElement.disabled = false;
                 layerObj.layer.setVisibility(layerObj.inputElement.checked, true);
-                
+
             }
             else {
                 var index = this.map.getLayerIndex(layerObj.layer);
-                
-                if (index > 0){
+
+                if (index > 0) {
                     //this.map.removeLayer(layerObj.layer);
                 }
-                
+
                 layerObj.layerElement.addClassName("disabled_layer");
                 layerObj.inputElement.disabled = true;
                 layerObj.inputElement.checked = false;
@@ -676,11 +676,11 @@ conwet.map.SelectedLayersManager = Class.create({
             this.map.setLayerIndex(this.overlays[i].layer, this.state.overlays[name].mapIndex);
             this.overlays[i].inputElement.checked = this.state.overlays[name].checked;
             var stateIndex = this.state.overlays[name].listIndex;
-            
-            if (stateIndex < this.overlays.length){               
+
+            if (stateIndex < this.overlays.length) {
                 this._swapPos(i, stateIndex, this.overlays);
             }
-            
+
         }
         if (this.overlays.length) {
             var parentElement = this.overlays[0].layerElement.parentNode;
@@ -701,43 +701,80 @@ conwet.map.SelectedLayersManager = Class.create({
                 break;
             }
         }
+        if (this.overlays.length) {
+            for (var i = 0; i < this.overlays.length; i++) {
+                var index = this.map.getLayerIndex(this.overlays[i].layer);
+                var name = this.overlays[i].layer.name;
+                this.state.overlays[name] = {
+                    mapIndex: index,
+                    listIndex: i,
+                    checked: this.overlays[i].inputElement.checked
+                };
+            }
 
-        for (var i = 0; i < this.overlays.length; i++) {
-            var index = this.map.getLayerIndex(this.overlays[i].layer);
-            var name = this.overlays[i].layer.name;
-            this.state.overlays[name] = {
-                mapIndex: index,
-                listIndex: i,
-                checked: this.overlays[i].inputElement.checked
-            };
-
+        } else {
+            this.state.overlays = {};
         }
 
         MashupPlatform.widget.getVariable("state").set(JSON.stringify(this.state));
     },
-    _swapPos: function(a, b, array) {        
+    _swapPos: function(a, b, array) {
         if (a !== b) {
             var temp = array[a];
             array[a] = array[b];
             array[b] = temp;
         }
     },
-    deleteLayerFromState: function(layerName){
+    deleteLayerFromState: function(layerName) {
         var listIndex = this.state.overlays[layerName].listIndex;
         delete this.state.overlays[layerName];
-        
+
         /*The indexes are updated. For example if we remove the layer that was
          * in the position 2, we have to decrease the indexes 3 and 4 to 2 and 3
          */
-        
-        for(var overlay in this.state.overlays) {
-            if (overlay.listIndex > listIndex){
+
+        for (var overlay in this.state.overlays) {
+            if (overlay.listIndex > listIndex) {
                 overlay.listIndex--;
             }
-        }        
-        
-        this._loadState();
-    }
-    
+        }
 
+        this._loadState();
+    },
+    removeService: function(url) {
+        url = url + "?";
+        var layerObj;
+        
+        for (var i = 0; i < this.overlays.length; i++) {
+
+            if (this.overlays[i].layer.url === url) {
+                layerObj = this.overlays[i];
+                this.map.removeLayer(this.overlays[i].layer);
+                this._dropLayerObj(this.overlays[i], false);
+                this.owsManager.deleteLayer(false, layerObj.layer.url);
+                i--;
+
+            }
+        }
+        
+        for (var i = 0; i < this.baseLayers.length; i++) {
+
+            if (this.baseLayers[i].layer.url === url) {
+
+                layerObj = this.baseLayers[i];
+                this.map.removeLayer(this.baseLayers[i].layer);
+                this._dropLayerObj(this.baseLayers[i], true);
+                this.owsManager.deleteLayer(true, layerObj.layer.url);
+                if (!layerObj.layerElement.hasClassName("deselected_baselayer")) {
+                    this._changeBaseLayer(this.baseLayers[0]);
+                    this._zoomToLayerExtent(this.baseLayers[0].layerInfo);
+                }
+                i--;
+
+            }
+        }
+
+        
+        this._saveState();
+    }
 });
