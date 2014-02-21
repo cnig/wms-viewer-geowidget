@@ -29,6 +29,7 @@ use("conwet");
 
 conwet.Gadget = Class.create({
     initialize: function() {
+        this.init = true;
         this.centerEvent = new conwet.events.Event('center_event');
         this.featureInfoEvent = new conwet.events.Event('feature_info_event');
         this.gadgetInfoEvent = new conwet.events.Event('map_info_event');
@@ -64,16 +65,27 @@ conwet.Gadget = Class.create({
 
         this.gadgetInfoSlot = new conwet.events.Slot('map_info_slot', function(state) {
             this.reacting_to_wiring_event = true;
+            state = JSON.parse(state);
             try {
-                this.updateState(JSON.parse(state));
+                this.updateState(state);
             } catch (e) {
             }
+            /*if ("zoom" in state) {
+             setTimeout(function() {
+             this.reacting_to_wiring_event = false;
+             }.bind(this), 400);
+             }
+             else*/
+            //if (!("zoom" in state)){
             this.reacting_to_wiring_event = false;
+            //}
+
+
         }.bind(this));
         //this.gadgetInfoSlot.addEvent(this.gadgetInfoEvent);
 
         // Attributes
-        this.messageManager = new conwet.ui.MessageManager(1000);
+        this.messageManager = new conwet.ui.MessageManager(1500);
         this.transformer = new conwet.map.ProjectionTransformer();
 
         this.cursorManager = new conwet.ui.CursorManager({
@@ -81,7 +93,7 @@ conwet.Gadget = Class.create({
             'onMove': this._moveOtherCursors.bind(this)
         });
 
-        this.reacting_to_wiring_event = false;
+        this.reacting_to_wiring_event = true;
         this.mapManager = new conwet.map.MapManager(this, {
             onMove: this.sendState.bind(this),
             onBeforeDrag: function() {
@@ -101,25 +113,27 @@ conwet.Gadget = Class.create({
 
     },
     sendState: function(state) {
-        if (!this.reacting_to_wiring_event) {
-            if ("center" in state) {
+        if (!this.reacting_to_wiring_event && !this.init) {
+            /*if ("center" in state) {
                 this.sendCenter(state.center.lon, state.center.lat);
-            }
+            }*/
             this.gadgetInfoEvent.send(Object.toJSON(state));
         }
     },
     updateState: function(state) {
-        if (typeof state == 'object') {
-            if (('lonlat' in state) || ('focus' in state)) {
-                if ('lonlat' in state) {
-                    state.cursor = this.mapManager.getPixelFromLonLat(state.lonlat.lon, state.lonlat.lat);
-                    if (state.cursor) {
-                        this.cursorManager.updateState(state);
+        if (!this.init) {
+            if (typeof state == 'object') {
+                if (('lonlat' in state) || ('focus' in state)) {
+                    if ('lonlat' in state) {
+                        state.cursor = this.mapManager.getPixelFromLonLat(state.lonlat.lon, state.lonlat.lat);
+                        if (state.cursor) {
+                            this.cursorManager.updateState(state);
+                        }
                     }
                 }
-            }
-            if (('zoom' in state) || ('center' in state)) {
-                this.mapManager.updateState(state);
+                if (('zoom' in state) || ('center' in state)) {
+                    this.mapManager.updateState(state);
+                }
             }
         }
     },
@@ -143,7 +157,7 @@ conwet.Gadget = Class.create({
 
     },
     setInfoMarker: function(positionInfos) {
-        if (positionInfos.length) {
+        if (positionInfos.length && !this.init) {
             if (positionInfos[0].bbox != null)
                 this.mapManager.setBox(positionInfos[0]);
             else
@@ -151,14 +165,14 @@ conwet.Gadget = Class.create({
         }
     },
     setInfoMarkers: function(positionInfos) {
-        if (positionInfos.length) {
+        if (positionInfos.length  && !this.init) {
             if (positionInfos[0].bbox != null)
                 this.mapManager.setBox(positionInfos[0]);
             else
                 this.mapManager.setEventMarkers(positionInfos);
         }
     },
-            _disableOtherCursors: function() {
+    _disableOtherCursors: function() {
         this.sendState({'focus': true});
     },
     _moveOtherCursors: function(x, y) {
@@ -181,6 +195,16 @@ conwet.Gadget = Class.create({
     },
     showError: function(message, permanent) {
         this.messageManager.showMessage(message, conwet.ui.MessageManager.ERROR, permanent);
+    },
+    stopInit: function() {
+        this.reacting_to_wiring_event = false;
+        this.init = false;
+    },
+    reactingToWiring: function() {
+        return this.reacting_to_wiring_event;
+    },
+    setReactingToWiring: function(reacting) {
+        this.reacting_to_wiring_event = reacting;
     }
 
 });

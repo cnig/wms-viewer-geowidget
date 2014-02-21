@@ -34,7 +34,7 @@ conwet.map.MapManager = Class.create({
         this.map = new OpenLayers.Map($('map'), {
             controls: [],
             displayProjection: new OpenLayers.Projection("EPSG:4326"),
-            tileSize: new OpenLayers.Size(128, 128),
+            //tileSize: new OpenLayers.Size(128, 128),
             zoomDuration: 10
                     //fractionalZoom: true            
         });
@@ -103,9 +103,12 @@ conwet.map.MapManager = Class.create({
 
         // ZoomBar
         this.zoomBar = new conwet.ui.ZoomBar(options);
+        this.zoomBar.setZoom(0);
+
 
         // Map Events
         this.map.events.register("moveend", this, function() {
+
             var changes = {};
 
             var center = this.transformer.normalize(this.map.getCenter());
@@ -123,14 +126,19 @@ conwet.map.MapManager = Class.create({
                 changes['center'] = center;
             }
 
-            if (('zoom' in changes) || ('center' in changes)) {
-                //this.markerManager.
-                this._onMove(changes);
+            if (!this.gadget.reactingToWiring()) {
+                if (('zoom' in changes) || ('center' in changes)) {
+                    //this.markerManager.
+                    this._onMove(changes);
+                }
             }
-
+            /*} else {
+             this.gadget.stopInit();
+             }*/
             this.isDrag = false;
             this.mousePosition.activate();
             this._onAfterDrag();
+
         }.bind(this));
 
         this.map.events.register("movestart", this, function() {
@@ -151,19 +159,21 @@ conwet.map.MapManager = Class.create({
         return this.gadget;
     },
     updateState: function(state) {
-        if ('center' in state) {
-            this.setCenter(state.center.lon, state.center.lat);
+        if ('zoom' in state && 'center' in state) {
+            this.setZoomCenter(state.zoom, state.center);
         }
-
-        if ('zoom' in state) {
+        else if ('zoom' in state) {
             this.setZoom(state.zoom);
+        }
+        else if ('center' in state) {
+            this.setCenter(state.center.lon, state.center.lat);
         }
 
     },
     setCenter: function(lon, lat) {
         var center = this.transformer.transform(new OpenLayers.LonLat(lon, lat));
-        if (!conwet.map.ProjectionTransformer.compareLonlat(this.center, center)) {
 
+        if (!conwet.map.ProjectionTransformer.compareLonlat(this.center, center)) {
             this.map.setCenter(center, this.map.zoom, false);
         }
     },
@@ -224,7 +234,7 @@ conwet.map.MapManager = Class.create({
             var location = positionInfos[i];
             this._setMarker(this.transformer.transform(new OpenLayers.LonLat(location.lon, location.lat)), location.title, "", OpenLayers.AdvancedMarker.EVENT_MARKER, true, false);
         }
-        
+
     },
     setEventMarker: function(positionInfo) {
 
@@ -232,7 +242,7 @@ conwet.map.MapManager = Class.create({
         this._setMarker(this.transformer.transform(new OpenLayers.LonLat(location.lon, location.lat)), location.title, "", OpenLayers.AdvancedMarker.EVENT_MARKER, true, true)
 
     },
-            setHighlightMarker: function(lonlat) {
+    setHighlightMarker: function(lonlat) {
         this.markerManager.setHighlightMarker(this.transformer.transform(new OpenLayers.LonLat(lonlat.lon, lonlat.lat)));
     },
     setQueryMarker: function(lon, lat, title, text) {
@@ -266,5 +276,18 @@ conwet.map.MapManager = Class.create({
             lvls = this.map.resolutions.length;
         }
         return lvls;
+    },
+    setZoomCenter: function(zoom, center) {
+        var zoomLevel = Math.round(this.getNumZoomLevels() * zoom);
+        zoomLevel = (zoomLevel < 0) ? 0 : zoomLevel;
+        zoomLevel = (zoomLevel >= this.getNumZoomLevels()) ? this.getNumZoomLevels() - 1 : zoomLevel;
+
+
+        var newCenter = this.transformer.transform(new OpenLayers.LonLat(center.lon, center.lat));
+        if (!conwet.map.ProjectionTransformer.compareLonlat(this.center, center) || (this.zoomLevel != zoomLevel)) {
+            this.map.setCenter(newCenter, zoomLevel);
+        }
+
+
     }
 });

@@ -193,8 +193,7 @@ conwet.map.SelectedLayersManager = Class.create({
                     this.owsManager.deleteLayer(isBaseLayer, layerObj.layer.url);
                     this._dropLayerObj(layerObj, isBaseLayer);
                     if (isBaseLayer && (!layerObj.layerElement.hasClassName("deselected_baselayer"))) {
-                        this._changeBaseLayer(this.baseLayers[0]);
-                        this._zoomToLayerExtent(this.baseLayers[0].layerInfo);
+                        this.selectPreviousLayer();
                     }
                     this._saveState();
                 }.bind(this));
@@ -322,17 +321,31 @@ conwet.map.SelectedLayersManager = Class.create({
                 this.gadget.showMessage((isBaseLayer) ? _("Nueva capa base.") : _("Nueva capa."));
 
             this._selectLayerObj(layerObj, isBaseLayer);
-            if (last && init)
+            if (last && init) {
                 this._loadState();
+            }
 
             if (!init)
                 this._saveState();
 
             if (isBaseLayer && (!init || last)) {
-                // Para evitar fallo con OSM
+                //this._zoomToExtent();
                 setTimeout(function() {
-                    this._zoomToExtent();
+
                     this._zoomToLayerExtent(layerObj.layerInfo);
+                    //console.log(layerObj.layer.url);
+                    setTimeout(function() {
+                        if (last)
+                            this.gadget.stopInit();
+
+                    }.bind(this), 1000);
+
+                }.bind(this), 1000);
+            }
+            else if (last) {
+                setTimeout(function() {
+                    this.gadget.stopInit();
+
                 }.bind(this), 1000);
             }
         }
@@ -372,12 +385,16 @@ conwet.map.SelectedLayersManager = Class.create({
         if (this.map.projection != layerObj.projection) {
             newcenter = this._changeMapProjection(layerObj.layerInfo, layerObj.projection, isWmsc);
         }
+        this.gadget.setReactingToWiring(true);
         this.map.setBaseLayer(layerObj.layer, true);
         this._selectBaseLayerElement(layerObj.layerElement);
         if (newcenter) {
+
             this._zoomToExtent();
             this.map.setCenter(newcenter, oldZoom);
+
         }
+        this.gadget.setReactingToWiring(false);
         this._updateOverlaysProjection(this.map.projection);
         this._disableOverlays();
         this.map.events.triggerEvent("changebaselayer");
@@ -415,7 +432,7 @@ conwet.map.SelectedLayersManager = Class.create({
                 layerObj.projection = projection;
                 layerObj.layer = newLayer;
 
-                //this.map.removeLayer(layer);
+                this.map.removeLayer(layer);
                 this._setExtent(newLayer, layerObj.layerInfo, layerObj.projection, false);
                 this.map.addLayer(newLayer);
                 this.map.setLayerIndex(newLayer, index);
@@ -442,7 +459,7 @@ conwet.map.SelectedLayersManager = Class.create({
 
                 layerObj.layerElement.removeClassName("disabled_layer");
                 layerObj.inputElement.disabled = false;
-                layerObj.layer.setVisibility(layerObj.inputElement.checked, true);
+                layerObj.layer.setVisibility(layerObj.inputElement.checked);
 
             }
             else {
@@ -454,11 +471,43 @@ conwet.map.SelectedLayersManager = Class.create({
 
                 layerObj.layerElement.addClassName("disabled_layer");
                 layerObj.inputElement.disabled = true;
-                layerObj.inputElement.checked = false;
-                layerObj.layer.setVisibility(false, true);
+                //layerObj.inputElement.checked = false;
+                layerObj.layer.setVisibility(false);
             }
         }
     },
+    /*_disableOverlays: function() {
+     for (var i = 0; i < this.overlays.length; i++) {
+     var layerObj = this.overlays[i];
+     
+     if (layerObj.layerInfo.projections.indexOf(this.map.projection) !== -1) {
+     var index = this.map.getLayerIndex(layerObj.layer);
+     
+     if (index < 0 && layerObj.inputElement.checked) {
+     this.map.addLayer(layerObj.layer);
+     }else if (index > 0 && !layerObj.inputElement.checked){
+     this.map.removeLayer(layerObj.layer);
+     }                
+     
+     layerObj.layerElement.removeClassName("disabled_layer");
+     layerObj.inputElement.disabled = false;
+     //layerObj.layer.setVisibility(layerObj.inputElement.checked, true);
+     
+     }
+     else {
+     var index = this.map.getLayerIndex(layerObj.layer);
+     
+     if (index > 0) {
+     this.map.removeLayer(layerObj.layer);
+     }
+     
+     layerObj.layerElement.addClassName("disabled_layer");
+     layerObj.inputElement.disabled = true;
+     layerObj.inputElement.checked = false;
+     //layerObj.layer.setVisibility(false, true);
+     }
+     }
+     },*/
     _changeMapProjection: function(layerInfo, projection, isWmsc) {
 
         this.map.units = new OpenLayers.Projection(projection).getUnits();
@@ -673,7 +722,10 @@ conwet.map.SelectedLayersManager = Class.create({
 
         for (var i = 0; i < this.overlays.length; i++) {
             var name = this.overlays[i].layer.name;
-            this.map.setLayerIndex(this.overlays[i].layer, this.state.overlays[name].mapIndex);
+
+            if (this.state.overlays[name].mapIndex >= 0)
+                this.map.setLayerIndex(this.overlays[i].layer, this.state.overlays[name].mapIndex);
+
             this.overlays[i].inputElement.checked = this.state.overlays[name].checked;
             var stateIndex = this.state.overlays[name].listIndex;
 
@@ -744,7 +796,7 @@ conwet.map.SelectedLayersManager = Class.create({
     removeService: function(url) {
         url = url + "?";
         var layerObj;
-        
+
         for (var i = 0; i < this.overlays.length; i++) {
 
             if (this.overlays[i].layer.url === url) {
@@ -756,7 +808,7 @@ conwet.map.SelectedLayersManager = Class.create({
 
             }
         }
-        
+
         for (var i = 0; i < this.baseLayers.length; i++) {
 
             if (this.baseLayers[i].layer.url === url) {
@@ -773,8 +825,15 @@ conwet.map.SelectedLayersManager = Class.create({
 
             }
         }
-
-        
         this._saveState();
+    },
+    selectPreviousLayer: function() {
+        this.baseLayers[this.baseLayers.length - 1].inputElement.checked = true;
+        this._changeBaseLayer(this.baseLayers[this.baseLayers.length - 1]);
+    },
+    selectPreviousLayerAndZoom: function(){
+        this.selectPreviousLayer();
+        this.zoomToLayerExtent(this.baseLayers[this.baseLayers.length - 1].layerInfo);
     }
+
 });

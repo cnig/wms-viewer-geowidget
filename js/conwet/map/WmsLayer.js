@@ -28,13 +28,14 @@
 use("conwet.map");
 
 conwet.map.WmsLayer = Class.create({
-    initialize: function(layer, version, tileSets) {
+    initialize: function(layer, version, type, tileSets) {
         this.layer = layer;
         this.parent = null;
         this.formats = [];
         this.projections = [];
         this.resolutions = $H();
         this.version = version;
+        this.type = type;
 
         if (layer.name == null) {
             layer.formats = [];
@@ -63,13 +64,12 @@ conwet.map.WmsLayer = Class.create({
                 var format = tileSets[i].format;
                 var resolutions = tileSets[i].resolutions;
                 this.resolutions.set(proj + format, resolutions);
-            }
-            console.log("hola");
+            }            
         }
         
         this.nestedLayers = [];
         for (var i = 0; i < layer.nestedLayers.length; i++) {
-            var sublayer = new conwet.map.WmsLayer(layer.nestedLayers[i], this.version, []);
+            var sublayer = new conwet.map.WmsLayer(layer.nestedLayers[i], this.version, this.type, []);
             this.nestedLayers.push(sublayer);
             sublayer.setParent(this);
         }
@@ -97,6 +97,7 @@ conwet.map.WmsLayer = Class.create({
         if (this.parent != null) {
             extents = this.parent.getExtent(srs);
             if (extents != null) {
+                //console.log(extents);
                 return extents;
             }
         }
@@ -111,12 +112,15 @@ conwet.map.WmsLayer = Class.create({
                     bbox = new OpenLayers.Bounds(bbox.toArray(true));
                 }
             }
-            
+            //console.log(bbox);
             return bbox;
+            
             
         } else if (this.layer.llbbox != null) {
             var transformer = new conwet.map.ProjectionTransformer();
-            return transformer.getExtent(this.layer.llbbox, 'EPSG:4326', srs);
+            var a = transformer.getExtent(this.layer.llbbox, 'EPSG:4326', srs);
+            //console.log(a);
+            return a;
         
         } else {
             return null;

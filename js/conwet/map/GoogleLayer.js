@@ -44,7 +44,7 @@ conwet.map.GoogleLayer = Class.create({
         return false;
     },
     getProjections: function() {
-        return ["EPSG:900913"];
+        return ["EPSG:3857"];
     },
     getFormats: function() {
         return [];
@@ -56,7 +56,7 @@ conwet.map.GoogleLayer = Class.create({
     getMaxExtent: function() {
         //return new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34, 20037508.34);
         var transformer = new conwet.map.ProjectionTransformer();
-        var a = transformer.getMaxExtent("EPSG:900913");
+        var a = transformer.getMaxExtent("EPSG:3857");
         return a;
     },
             

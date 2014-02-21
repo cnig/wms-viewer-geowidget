@@ -59,7 +59,7 @@ html, body {
     margin: 0;
     background-color: transparent;
     position: absolute;
-    top: 94px;
+    top: 105px;
     left: 13px;
     z-index: 10;
     cursor: pointer;
@@ -174,3 +174,4 @@ html, body {
 .styled_select > div > .text {
    display: none;
 }
+

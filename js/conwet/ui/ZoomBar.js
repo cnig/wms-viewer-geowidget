@@ -70,12 +70,14 @@ conwet.ui.ZoomBar = Class.create({
                 this._onZoomIn = options.onZoomIn;
             }
         }
-
+        this._updateHandlePosition(this.actualZoom);
+        
         // HTML Events
         this.plusButton.observe  ('click',     this._onZoomIn);
         this.minusButton.observe ('click',     this._onZoomOut);
         this.zoomBar.observe     ('mousedown', this._zoomByClick.bind(this));
         this.zoomHandle.observe  ('mousedown', this._startDrag.bind(this));
+        
     },
 
     enableEvents: function() {
