@@ -28,14 +28,13 @@
 use("conwet.map");
 
 conwet.map.WmsLayer = Class.create({
-    initialize: function(layer, version, type, tileSets) {
+    initialize: function(layer, version, tileSets) {
         this.layer = layer;
         this.parent = null;
         this.formats = [];
         this.projections = [];
         this.resolutions = $H();
-        this.version = version;
-        this.type = type;
+        this.version = version;        
 
         if (layer.name == null) {
             layer.formats = [];
@@ -69,7 +68,7 @@ conwet.map.WmsLayer = Class.create({
         
         this.nestedLayers = [];
         for (var i = 0; i < layer.nestedLayers.length; i++) {
-            var sublayer = new conwet.map.WmsLayer(layer.nestedLayers[i], this.version, this.type, []);
+            var sublayer = new conwet.map.WmsLayer(layer.nestedLayers[i], this.version, []);
             this.nestedLayers.push(sublayer);
             sublayer.setParent(this);
         }

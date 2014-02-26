@@ -29,10 +29,6 @@
  */
 
 
-/*
- * Modified by jmostazo (CoNWeT, UPM)
- */
-
 OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
     initialize: function(mapManager, initialServers) {
         OpenLayers.Control.prototype.initialize.apply(this);
