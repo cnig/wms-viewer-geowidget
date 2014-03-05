@@ -363,9 +363,9 @@ conwet.map.SelectedLayersManager = Class.create({
         layer.projection = projection;
         layer.units = new OpenLayers.Projection(projection).getUnits();
         if (isWmsc) {
-            layer.maxExtent = layerInfo.getMaxExtent(projection);
+            layer.maxExtent = layerInfo.getMaxExtent(projection, false);
         } else
-            layer.maxExtext = layerInfo.getExtent(projection);
+            layer.maxExtext = layerInfo.getExtent(projection, false);
     },
     _changeBaseLayer: function(layerObj) {
 
@@ -444,7 +444,7 @@ conwet.map.SelectedLayersManager = Class.create({
         this.map.zoomToExtent(this.map.maxExtent);
     },
     _zoomToLayerExtent: function(layerInfo) {
-        this.map.zoomToExtent(layerInfo.getExtent(this.map.projection));
+        this.map.zoomToExtent(layerInfo.getExtent(this.map.projection, true));
     },
     _disableOverlays: function(projection) {
         for (var i = 0; i < this.overlays.length; i++) {
@@ -535,8 +535,9 @@ conwet.map.SelectedLayersManager = Class.create({
         if (isWmsc) {
             this.map.maxExtent = layerInfo.getMaxExtent(projection);
         } else
-            this.map.maxExtent = layerInfo.getExtent(projection);
-
+            this.map.maxExtent = layerInfo.getExtent(projection, false);
+        console.dir(layerInfo);
+        console.log(this.map.maxExtent);
         this.map.projection = projection;
         return newcenter;
     },
@@ -700,8 +701,9 @@ conwet.map.SelectedLayersManager = Class.create({
                 projection: new OpenLayers.Projection(projection),
                 serverResolutions: resolutions,
                 resolutions: resolutions,
-                isBaseLayer: isBaseLayer
-            }), projection, isBaseLayer, init);
+                isBaseLayer: isBaseLayer,
+                tiled: true
+            }), projection, isBaseLayer, init, last);
         }
 
     },

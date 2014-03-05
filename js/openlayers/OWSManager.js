@@ -248,10 +248,10 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
             this.serverForm.innerHTML = "";
         }
         
-        if (baseURL.toLowerCase().indexOf("wmsc")!==-1 || baseURL.toLowerCase().indexOf("wms-c")!==-1){
+       /* if (baseURL.toLowerCase().indexOf("wmsc")!==-1 || baseURL.toLowerCase().indexOf("wms-c")!==-1){
              this.gadget.showError("This server is not WMS. WMSC and WMTS are not supported");
              return;
-        }
+        }*/
         if (baseURL.length == 0) {
             return;
         }

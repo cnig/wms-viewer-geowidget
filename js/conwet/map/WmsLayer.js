@@ -34,7 +34,7 @@ conwet.map.WmsLayer = Class.create({
         this.formats = [];
         this.projections = [];
         this.resolutions = $H();
-        this.version = version;        
+        this.version = version;
 
         if (layer.name == null) {
             layer.formats = [];
@@ -51,11 +51,11 @@ conwet.map.WmsLayer = Class.create({
         }
 
         this.projections = Object.keys(layer.srs);
-        
+
         if (tileSets.length) {
             for (var i = 0; i < tileSets.length; i++) {
                 var proj;
-                for (var index in tileSets[i].bbox) {                                           
+                for (var index in tileSets[i].bbox) {
                     if (tileSets[i].bbox.hasOwnProperty(index)) {
                         proj = tileSets[i].bbox[index].srs;
                     }
@@ -63,9 +63,9 @@ conwet.map.WmsLayer = Class.create({
                 var format = tileSets[i].format;
                 var resolutions = tileSets[i].resolutions;
                 this.resolutions.set(proj + format, resolutions);
-            }            
+            }
         }
-        
+
         this.nestedLayers = [];
         for (var i = 0; i < layer.nestedLayers.length; i++) {
             var sublayer = new conwet.map.WmsLayer(layer.nestedLayers[i], this.version, []);
@@ -91,36 +91,39 @@ conwet.map.WmsLayer = Class.create({
     getFormats: function() {
         return this.formats;
     },
-    getExtent: function(srs) {
+    getExtent: function(srs, toZoom) {
         var extents = null;
-        if (this.parent != null) {
+        if (this.parent != null && !toZoom
+                && (srs in this.parent.layer.bbox || !(srs in this.layer.bbox))) {
+
             extents = this.parent.getExtent(srs);
             if (extents != null) {
                 //console.log(extents);
                 return extents;
             }
         }
-        
+
         if (srs in this.layer.bbox) {
             var bbox = this.layer.bbox[srs].bbox;
             bbox = new OpenLayers.Bounds(bbox);
-           
-            if (this.version === "1.3.0"){                               
+
+            /*if (this.version === "1.3.0") {
                 var change = ["EPSG:4230", "EPSG:4326", "EPSG:4258"];
-                if (change.indexOf(srs)!==-1){
+                if (change.indexOf(srs) !== -1) {
                     bbox = new OpenLayers.Bounds(bbox.toArray(true));
                 }
-            }
+            }*/
             //console.log(bbox);
             return bbox;
-            
-            
+
+
         } else if (this.layer.llbbox != null) {
             var transformer = new conwet.map.ProjectionTransformer();
             var a = transformer.getExtent(this.layer.llbbox, 'EPSG:4326', srs);
+
             //console.log(a);
             return a;
-        
+
         } else {
             return null;
         }
@@ -138,10 +141,10 @@ conwet.map.WmsLayer = Class.create({
         }
         return null;
     },
-    getResolutions: function(key){
+    getResolutions: function(key) {
         return this.resolutions.get(key);
     },
-    setParent: function (parent) {
+    setParent: function(parent) {
         this.parent = parent;
     }
 

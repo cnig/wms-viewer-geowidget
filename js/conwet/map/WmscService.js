@@ -33,15 +33,19 @@ conwet.map.WmscService = Class.create({
         var formater = new OpenLayers.Format.WMSCapabilities.v1_1_1_WMSC();
         this.wms = (formater).read(xml);
         this.layers = $H();
-        var factor = this.wms.capability.vendorSpecific.tileSets.length / this.wms.capability.layers.length;
         
-
+        //Num of layerSets for every layer
+        var factor = this.wms.capability.vendorSpecific.tileSets.length / this.wms.capability.layers.length;        
+        
+        //We iterate like in a matrix
         for (var i = 0; i < this.wms.capability.layers.length; i++) {
             var tileSets = [];
             for (var j = 0; j < factor; j++){
-                tileSets [j] = this.wms.capability.vendorSpecific.tileSets[((j+1)*(i+1))-1];
+                var index = (j + (factor*(i)));
+                tileSets [j] = this.wms.capability.vendorSpecific.tileSets[index];
+                console.log(index);
             }
-            this.addLayer(this.wms.capability.layers[i], this.wms.version, tileSets);
+            this.addLayer(new conwet.map.WmsLayer(this.wms.capability.layers[i], this.wms.version, tileSets));
             
         }
 
@@ -60,7 +64,7 @@ conwet.map.WmscService = Class.create({
     },
 
     getVersion: function() {
-        return this.wms.version;
+        return "1.1.1";
     },
 
     getLayers: function() {
@@ -91,8 +95,12 @@ conwet.map.WmscService = Class.create({
         return this.layers.get(name);
     },
 
-    addLayer: function(layer, tileSets) {
-        this.layers.set(layer.name, new conwet.map.WmsLayer(layer, tileSets));
+    addLayer: function(layer) {
+        this.layers.set(layer.getName(), layer);
+
+        for (var i = 0; i < layer.nestedLayers.length; i++) {
+            this.addLayer(layer.nestedLayers[i]);
+        }
     },
 
     removeLayer: function(name) {

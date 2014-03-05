@@ -29,10 +29,11 @@ use("conwet.map");
 
 conwet.map.WmsService = Class.create({
     initialize: function(xml) {
-        if (this.isWmsc(xml)){
+
+        if (this.isWmsc(xml)) {
             throw new Error("Es Wmsc");
         }
-        
+
         this.wms = (new OpenLayers.Format.WMSCapabilities()).read(xml);
 
         if (this.wms.version == "1.3.0") {
