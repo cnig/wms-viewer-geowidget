@@ -1,6 +1,6 @@
 /*
- *     Copyright (c) 2013 CoNWeT Lab., Universidad Politécnica de Madrid
- *     Copyright (c) 2013 IGN - Instituto Geográfico Nacional
+ *     Copyright (c) 2014 CoNWeT Lab., Universidad Politécnica de Madrid
+ *     Copyright (c) 2014 IGN - Instituto Geográfico Nacional
  *     Centro Nacional de Información Geográfica
  *     http://www.ign.es/
  *
@@ -27,16 +27,17 @@
 
 use("conwet.map");
 
-conwet.map.WmsLayer = Class.create({
-    initialize: function(layer, version, tileSets) {
+conwet.map.WmtsLayer = Class.create({
+    initialize: function(layer, version, tileMatrixSets) {
         this.layer = layer;
         this.parent = null;
         this.formats = [];
         this.projections = [];
         this.resolutions = $H();
         this.version = version;
+        this.tileMatrixSets = tileMatrixSets;
 
-        if (layer.name == null) {
+        if (layer.identifier == null) {
             layer.formats = [];
         }
 
@@ -50,31 +51,21 @@ conwet.map.WmsLayer = Class.create({
             }
         }
 
-        this.projections = Object.keys(layer.srs);
-
-        if (tileSets.length) {
-            for (var i = 0; i < tileSets.length; i++) {
-                var proj;
-                for (var index in tileSets[i].srs) {
-                    if (tileSets[i].srs[index] === true) {
-                        proj = index;
-                    }
-                }
-                var format = tileSets[i].format;
-                var resolutions = tileSets[i].resolutions;
-                this.resolutions.set(proj + format, resolutions);
-            }
+        this.projections = [];
+        
+        for (var i = 0; i< layer.tileMatrixSetLinks.length; i++){
+            this.projections[i] = layer.tileMatrixSetLinks[i].tileMatrixSet;
         }
 
         this.nestedLayers = [];
-        for (var i = 0; i < layer.nestedLayers.length; i++) {
-            var sublayer = new conwet.map.WmsLayer(layer.nestedLayers[i], this.version, []);
+        for (var i = 0; i < layer.layers.length; i++) {
+            var sublayer = new conwet.map.WmtsLayer(layer.layers[i], this.version);
             this.nestedLayers.push(sublayer);
             sublayer.setParent(this);
         }
     },
     getName: function() {
-        return this.layer.name;
+        return this.layer.identifier;
     },
     getTitle: function() {
         return this.layer.title;
@@ -92,42 +83,11 @@ conwet.map.WmsLayer = Class.create({
         return this.formats;
     },
     getExtent: function(srs, toZoom) {
-        var extents = null;
-        /*var validas = ["EPSG:4230", "EPSG:4326", "EPSG:4258", "EPSG:3857"]; //Especificas para IGNBASETODO
-        /*if (this.parent != null && !toZoom
-            && (srs in this.parent.layer.bbox || !(srs in this.layer.bbox) ||
-            (this.getName() === "IGNBaseTodo" && validas.indexOf(srs) !== -1))) {
-
-            extents = this.parent.getExtent(srs);
-            if (extents != null) {
-                //console.log(extents);
-                return extents;
-            }
-        }*/
-
-        if (srs in this.layer.bbox) {
-            var bbox = this.layer.bbox[srs].bbox;
-            bbox = new OpenLayers.Bounds(bbox);
-             var change = ["EPSG:4230", "EPSG:4326", "EPSG:4258"];
-            if (this.version === "1.3.0") {               
-                if (change.indexOf(srs) !== -1) {
-                    bbox = new OpenLayers.Bounds(bbox.toArray(true));
-                }
-            }
-            //console.log(bbox);
-            return bbox;
-
-
-        } else if (this.layer.llbbox != null) {
-            var transformer = new conwet.map.ProjectionTransformer();
-            var a = transformer.getExtent(this.layer.llbbox, 'EPSG:4326', srs);
-
-            //console.log(a);
-            return a;
-
-        } else {
-            return null;
-        }
+        if (this.tileMatrixSets[srs])
+            return this.tileMatrixSets[srs].bounds;
+        else return this.getMaxExtent(srs);
+        
+    
     },
     getMaxExtent: function(proj) {
         if (proj == "EPSG:3857" )

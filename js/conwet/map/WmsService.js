@@ -1,6 +1,6 @@
 /*
- *     Copyright (c) 2013 CoNWeT Lab., Universidad Politécnica de Madrid
- *     Copyright (c) 2013 IGN - Instituto Geográfico Nacional
+ *     Copyright (c) 2014 CoNWeT Lab., Universidad Politécnica de Madrid
+ *     Copyright (c) 2014 IGN - Instituto Geográfico Nacional
  *     Centro Nacional de Información Geográfica
  *     http://www.ign.es/
  *
@@ -30,9 +30,9 @@ use("conwet.map");
 conwet.map.WmsService = Class.create({
     initialize: function(xml) {
 
-        if (this.isWmsc(xml)) {
+        /*if (this.isWmsc(xml)) {
             throw new Error("Es Wmsc");
-        }
+        }*/
 
         this.wms = (new OpenLayers.Format.WMSCapabilities()).read(xml);
 
@@ -99,9 +99,12 @@ conwet.map.WmsService = Class.create({
         var keywords = xml.getElementsByTagName("Keyword");
 
         for (var i = 0; i < keywords.length; i++) {
-            var keyword = keywords[i].childNodes[0].wholeText;
-            if (keyword === "WMS-C" || keyword === "WMSC") {
-                return true;
+            var keyword = keywords[i].childNodes[0];
+            if (keyword != null) {
+                var wholeText = keyword.wholeText;
+                if (keyword === "WMS-C" || keyword === "WMSC") {
+                    return true;
+                }
             }
         }
         return false;

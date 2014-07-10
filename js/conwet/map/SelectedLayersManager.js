@@ -153,6 +153,14 @@ conwet.map.SelectedLayersManager = Class.create({
                 resolutions = layer.params.RESOLUTIONS;
             }
 
+            var scales = null;
+            if (layer.matrixIds) {
+                scales = [];
+                for (var i = 0; i < layer.matrixIds.length; i++) {
+                    scales[i] = layer.matrixIds[i].scaleDenominator;
+                }
+            }
+
             layerObj = {
                 layer: layer,
                 layerElement: layerElement,
@@ -160,7 +168,8 @@ conwet.map.SelectedLayersManager = Class.create({
                 zoomElement: zoomButton,
                 layerInfo: layerInfo,
                 projection: projection,
-                resolutions: resolutions
+                resolutions: resolutions,
+                scales: scales
             };
 
             inputElement.observe("mousedown", function(e) {
@@ -189,12 +198,13 @@ conwet.map.SelectedLayersManager = Class.create({
                 $(dropButton).addClassName('drop');
                 dropButton.observe("click", function(e) {
                     var index = this.map.getLayerIndex(layerObj.layer);
-                    this.map.removeLayer(layerObj.layer);
                     this.owsManager.deleteLayer(isBaseLayer, layerObj.layer.url);
                     this._dropLayerObj(layerObj, isBaseLayer);
                     if (isBaseLayer && (!layerObj.layerElement.hasClassName("deselected_baselayer"))) {
                         this.selectPreviousLayer();
                     }
+
+                    this.map.removeLayer(layerObj.layer);
                     this._saveState();
                 }.bind(this));
                 dropButton.title = _("Remove layer");
@@ -292,8 +302,10 @@ conwet.map.SelectedLayersManager = Class.create({
                     isWmsc = true;
                 }
 
-                this._changeMapProjection(layerInfo, projection, isWmsc);
+
+                this._changeMapProjection(layerInfo, projection, isWmsc, layerObj.scales);
             }
+
 
             layerObj.projection = this.map.projection;
             this._setExtent(layer, layerInfo, layerObj.projection, isWmsc);
@@ -363,9 +375,10 @@ conwet.map.SelectedLayersManager = Class.create({
         layer.projection = projection;
         layer.units = new OpenLayers.Projection(projection).getUnits();
         if (isWmsc) {
-            layer.maxExtent = layerInfo.getMaxExtent(projection, false);
+            layer.maxExtent = layerInfo.getMaxExtent(projection);
+            //layer.maxExtext = layerInfo.getExtent(projection);
         } else
-            layer.maxExtext = layerInfo.getExtent(projection, false);
+            layer.maxExtext = layerInfo.getExtent(projection);
     },
     _changeBaseLayer: function(layerObj) {
 
@@ -383,7 +396,7 @@ conwet.map.SelectedLayersManager = Class.create({
         }
 
         if (this.map.projection != layerObj.projection) {
-            newcenter = this._changeMapProjection(layerObj.layerInfo, layerObj.projection, isWmsc);
+            newcenter = this._changeMapProjection(layerObj.layerInfo, layerObj.projection, isWmsc, layerObj.scales);
         }
         this.gadget.setReactingToWiring(true);
         this.map.setBaseLayer(layerObj.layer, true);
@@ -418,24 +431,49 @@ conwet.map.SelectedLayersManager = Class.create({
             var layerObj = this.overlays[i];
             var layer = layerObj.layer;
 
-            if (layerObj.projection != projection) {
+            if (layerObj.projection != projection ) {
                 var index = this.map.getLayerIndex(layer);
-
-                var newLayer = new OpenLayers.Layer.WMS(layer.name, layer.url, {
-                    "layers": layer.params.LAYERS,
-                    "format": layer.params.FORMAT,
-                    "TRANSPARENT": "TRUE",
-                    "EXCEPTIONS": "application/vnd.ogc.se_inimage",
-                    projection: new OpenLayers.Projection(this.map.projection)
-                });
-
-                layerObj.projection = projection;
+                var newLayer;
+                if (layerObj.scales && layerObj.layerInfo.tileMatrixSets[projection] ) {
+                    newLayer = new OpenLayers.Layer.WMTS({
+                        url: layer.url,
+                        layer: layerObj.layerInfo.layer.identifier,
+                        name: layerObj.layerInfo.layer.identifier,
+                        format: layerObj.layerInfo.format,
+                        TRANSPARENT: true,
+                        //EXCEPTIONS: 'application/vnd.ogc.se_inimage',
+                        projection: new OpenLayers.Projection(projection),
+                        isBaseLayer: false,
+                        matrixIds: layerObj.layerInfo.tileMatrixSets[projection].matrixIds,
+                        matrixSet: projection,
+                        style: "default"});
+                                    layerObj.projection = projection;
                 layerObj.layer = newLayer;
 
                 this.map.removeLayer(layer);
                 this._setExtent(newLayer, layerObj.layerInfo, layerObj.projection, false);
                 this.map.addLayer(newLayer);
                 this.map.setLayerIndex(newLayer, index);
+
+                } else if (!layerObj.scales){
+
+                    newLayer = new OpenLayers.Layer.WMS(layer.name, layer.url, {
+                        "layers": layer.params.LAYERS,
+                        "format": layer.params.FORMAT,
+                        "TRANSPARENT": "TRUE",
+                        "EXCEPTIONS": "application/vnd.ogc.se_inimage",
+                        projection: new OpenLayers.Projection(this.map.projection)
+                    });
+                                    layerObj.projection = projection;
+                layerObj.layer = newLayer;
+
+                this.map.removeLayer(layer);
+                this._setExtent(newLayer, layerObj.layerInfo, layerObj.projection, false);
+                this.map.addLayer(newLayer);
+                this.map.setLayerIndex(newLayer, index);
+                }
+
+
             }
         }
     },
@@ -449,30 +487,32 @@ conwet.map.SelectedLayersManager = Class.create({
     _disableOverlays: function(projection) {
         for (var i = 0; i < this.overlays.length; i++) {
             var layerObj = this.overlays[i];
+            if (layerObj.resolutions == null) {
 
-            if (layerObj.layerInfo.projections.indexOf(this.map.projection) !== -1) {
-                var index = this.map.getLayerIndex(layerObj.layer);
+                if (layerObj.layerInfo.projections.indexOf(this.map.projection) !== -1) {
+                    var index = this.map.getLayerIndex(layerObj.layer);
 
-                if (index < 0) {
-                    this.map.addLayer(layerObj.layer);
+                    if (index < 0) {
+                        this.map.addLayer(layerObj.layer);
+                    }
+
+                    layerObj.layerElement.removeClassName("disabled_layer");
+                    layerObj.inputElement.disabled = false;
+                    layerObj.layer.setVisibility(layerObj.inputElement.checked);
+
                 }
+                else {
+                    var index = this.map.getLayerIndex(layerObj.layer);
 
-                layerObj.layerElement.removeClassName("disabled_layer");
-                layerObj.inputElement.disabled = false;
-                layerObj.layer.setVisibility(layerObj.inputElement.checked);
+                    if (index > 0) {
+                        //this.map.removeLayer(layerObj.layer);
+                    }
 
-            }
-            else {
-                var index = this.map.getLayerIndex(layerObj.layer);
-
-                if (index > 0) {
-                    //this.map.removeLayer(layerObj.layer);
+                    layerObj.layerElement.addClassName("disabled_layer");
+                    layerObj.inputElement.disabled = true;
+                    //layerObj.inputElement.checked = false;
+                    layerObj.layer.setVisibility(false);
                 }
-
-                layerObj.layerElement.addClassName("disabled_layer");
-                layerObj.inputElement.disabled = true;
-                //layerObj.inputElement.checked = false;
-                layerObj.layer.setVisibility(false);
             }
         }
     },
@@ -508,7 +548,7 @@ conwet.map.SelectedLayersManager = Class.create({
      }
      }
      },*/
-    _changeMapProjection: function(layerInfo, projection, isWmsc) {
+    _changeMapProjection: function(layerInfo, projection, isWmsc, scales) {
 
         this.map.units = new OpenLayers.Projection(projection).getUnits();
         var newcenter;
@@ -523,21 +563,29 @@ conwet.map.SelectedLayersManager = Class.create({
             this.map.resolutions = null;
             this.map.maxResolution = null;
             this.map.minResolution = null;
-            var scales = [Proj4js.maxScale[(this.map.units in (Proj4js.maxScale)) ? this.map.units : "m"]];
+
+            //if (!scales) {
+            scales = [Proj4js.maxScale[(this.map.units in (Proj4js.maxScale)) ? this.map.units : "m"]];
 
             for (var i = 0; i < 18; i++) {
                 scales.push(scales[i] / 2);
             }
+            //}
             this.map.scales = scales;
         }
         //this.maxResolution = "auto";
         //this.minResolution = "auto";
         if (isWmsc) {
             this.map.maxExtent = layerInfo.getMaxExtent(projection);
+            //this.map.maxExtent = layerInfo.getExtent(projection);
         } else
-            this.map.maxExtent = layerInfo.getExtent(projection, false);
+            this.map.maxExtent = layerInfo.getExtent(projection);
         console.dir(layerInfo);
         console.log(this.map.maxExtent);
+
+        if (this.mapManager != null)
+            this.mapManager.updateMarkers(this.map.projection, projection);
+
         this.map.projection = projection;
         return newcenter;
     },
@@ -667,7 +715,7 @@ conwet.map.SelectedLayersManager = Class.create({
         tr.appendChild(td);
         return tr;
     },
-    createLayer: function(url, layer, projection, imageType, isBaseLayer, init, last, isWmsc) {
+    createLayer: function(url, layer, projection, imageType, isBaseLayer, init, last, type) {
         if (url.indexOf('?') == -1) {
             url = url + '?';
         } else {
@@ -675,16 +723,16 @@ conwet.map.SelectedLayersManager = Class.create({
                 url = url.slice(0, -1);
         }
 
-        if (!isWmsc) {
+        if (type == "wms") {
             this.addLayer(new OpenLayers.Layer.WMS(layer.layer.name, url, {
                 layers: layer.layer.name,
                 format: imageType,
                 TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
-                EXCEPTIONS: 'application/vnd.ogc.se_inimage',
+                //EXCEPTIONS: 'application/vnd.ogc.se_inimage',
                 projection: new OpenLayers.Projection(projection),
             }), projection, isBaseLayer, init, last);
 
-        } else {
+        } else if (type == "wmsc") {
             var resolutions;
             if (typeof layer.resolutions.get == 'function') {
                 resolutions = layer.resolutions.get(projection + imageType);
@@ -697,12 +745,27 @@ conwet.map.SelectedLayersManager = Class.create({
                 layers: layer.layer.name,
                 format: imageType,
                 TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
-                EXCEPTIONS: 'application/vnd.ogc.se_inimage',
+                //EXCEPTIONS: 'application/vnd.ogc.se_inimage',
                 projection: new OpenLayers.Projection(projection),
                 serverResolutions: resolutions,
                 resolutions: resolutions,
                 isBaseLayer: isBaseLayer,
                 tiled: true
+            }), projection, isBaseLayer, init, last);
+        } else if (type == "wmts") {
+            this.addLayer(new OpenLayers.Layer.WMTS({
+                url: url,
+                layer: layer.layer.identifier,
+                name: layer.layer.identifier,
+                format: imageType,
+                TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
+                //EXCEPTIONS: 'application/vnd.ogc.se_inimage',
+                projection: new OpenLayers.Projection(projection),
+                isBaseLayer: isBaseLayer,
+                matrixIds: layer.tileMatrixSets[projection].matrixIds,
+                matrixSet: projection,
+                style: "default"
+
             }), projection, isBaseLayer, init, last);
         }
 
@@ -719,7 +782,6 @@ conwet.map.SelectedLayersManager = Class.create({
                     this._zoomToLayerExtent(layerObj.layerInfo);
                 }.bind(this), 1500);
             }
-
         }
 
         for (var i = 0; i < this.overlays.length; i++) {
@@ -833,9 +895,9 @@ conwet.map.SelectedLayersManager = Class.create({
         this.baseLayers[this.baseLayers.length - 1].inputElement.checked = true;
         this._changeBaseLayer(this.baseLayers[this.baseLayers.length - 1]);
     },
-    selectPreviousLayerAndZoom: function(){
+    selectPreviousLayerAndZoom: function() {
         this.selectPreviousLayer();
-        this.zoomToLayerExtent(this.baseLayers[this.baseLayers.length - 1].layerInfo);
+        this._zoomToLayerExtent(this.baseLayers[this.baseLayers.length - 1].layerInfo);
     }
 
 });

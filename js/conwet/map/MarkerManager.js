@@ -28,13 +28,12 @@
 use("conwet.map");
 
 conwet.map.MarkerManager = Class.create({
-
     initialize: function(map) {
         this.map = map;
 
         this.selectedMarker = null;
 
-        this.userMarkers  = new OpenLayers.Layer.Markers("User  markers");
+        this.userMarkers = new OpenLayers.Layer.Markers("User  markers");
         this.eventMarkers = new OpenLayers.Layer.Markers("Event markers");
         this.queryMarkers = new OpenLayers.Layer.Markers("Query markers");
         this.boxesMarkers = new OpenLayers.Layer.Boxes("Boxes");
@@ -42,15 +41,14 @@ conwet.map.MarkerManager = Class.create({
         this.map.addLayer(this.eventMarkers);
         this.map.addLayer(this.queryMarkers);
         this.map.addLayer(this.boxesMarkers);
-        
+
         this.box = null;
-        
+
         this.markers = [];
         this._drawToolbar();
         this.showToolbar(true); // TODO Toolbar visible solo en el modo Marker
         this._updateToolbar();
     },
-
     _drawToolbar: function() {
         this.toolbar = document.createElement("div");
         $(this.toolbar).addClassName("marker_toolbar");
@@ -58,37 +56,35 @@ conwet.map.MarkerManager = Class.create({
 
         this.removeAllButton = conwet.ui.UIUtils.createButton({
             "classNames": ["marker_button", "remove_all"],
-            "title"     : _("Remove all markers"),
-            "onClick"   : this._removeAllMarkers.bind(this)
+            "title": _("Remove all markers"),
+            "onClick": this._removeAllMarkers.bind(this)
         });
         this.toolbar.appendChild(this.removeAllButton);
 
         this.removeQueryButton = conwet.ui.UIUtils.createButton({
             "classNames": ["marker_button", "remove_query"],
-            "title"     : _("Remove all temporal markers"),
-            "onClick"   : this._removeTemporalMarkers.bind(this)
+            "title": _("Remove all temporal markers"),
+            "onClick": this._removeTemporalMarkers.bind(this)
         });
         this.toolbar.appendChild(this.removeQueryButton);
 
         this.removeSelectedButton = conwet.ui.UIUtils.createButton({
             "classNames": ["marker_button", "remove_selected"],
-            "title"     : _("Remove selected marker"),
-            "onClick"   : this._removeSelectedMarker.bind(this)
+            "title": _("Remove selected marker"),
+            "onClick": this._removeSelectedMarker.bind(this)
         });
         this.toolbar.appendChild(this.removeSelectedButton);
 
         this.saveButton = conwet.ui.UIUtils.createButton({
             "classNames": ["marker_button", "save"],
-            "title"     : _("Change to user marker"),
-            "onClick"   : this._saveSelectedMarker.bind(this)
+            "title": _("Change to user marker"),
+            "onClick": this._saveSelectedMarker.bind(this)
         });
         this.toolbar.appendChild(this.saveButton);
     },
-
     showToolbar: function(show) {
         this._showElement(this.toolbar, show);
     },
-
     _showElement: function(element, show) {
         if (show) {
             $(element).removeClassName("no_display");
@@ -97,12 +93,11 @@ conwet.map.MarkerManager = Class.create({
             $(element).addClassName("no_display");
         }
     },
-
     _updateToolbar: function() {
         var hasQuery = this.queryMarkers.markers.length > 0;
         var hasEvent = this.eventMarkers.markers.length > 0;
-        var hasUser  = this.userMarkers.markers.length > 0;
-        var hasBox = (this.box!=null);
+        var hasUser = this.userMarkers.markers.length > 0;
+        var hasBox = (this.box != null);
 
         this._showElement(this.saveButton, false);
         this._showElement(this.removeSelectedButton, false);
@@ -126,35 +121,33 @@ conwet.map.MarkerManager = Class.create({
         else {
             this._showElement(this.removeAllButton, true);
             this._showElement(this.removeQueryButton, hasQuery || hasEvent);
-            this._showElement(this.saveButton, (this.selectedMarker != null) && 
-                (this.selectedMarker.getType() != OpenLayers.AdvancedMarker.USER_MARKER));
+            this._showElement(this.saveButton, (this.selectedMarker != null) &&
+                    (this.selectedMarker.getType() != OpenLayers.AdvancedMarker.USER_MARKER));
             this._showElement(this.removeSelectedButton, this.selectedMarker != null);
         }
     },
-
     /*setMarkers: function(locations) {
-        this.eventMarkers.clearMarkers();
-        for (var i=0; i<locations.length; i++){
-            var location = locations[i];
-            this.setMarker(new OpenLayers.LonLat(location.lon, location.lat), location.title, "", 0, true);
-        }
-    },*/
+     this.eventMarkers.clearMarkers();
+     for (var i=0; i<locations.length; i++){
+     var location = locations[i];
+     this.setMarker(new OpenLayers.LonLat(location.lon, location.lat), location.title, "", 0, true);
+     }
+     },*/
 
     setMarker: function(lonlat, title, text, type, popup, center, onClick) {
         /*if ((type == OpenLayers.AdvancedMarker.QUERY_MARKER) || (type == OpenLayers.AdvancedMarker.EVENT_MARKER)) {
-            this._removeTemporalMarkers();
-        }*/ // TODO Gestion de POIs
+         this._removeTemporalMarkers();
+         }*/ // TODO Gestion de POIs
         //this._removeAllMarkers();
         this._setMarker(lonlat, title, text, type, popup, center, onClick);
     },
-
     _setMarker: function(lonlat, title, text, type, popup, center, onClick) {
         var marker = this._getExistingMarker(lonlat); // Si el marcador ya existe
         if (marker != null) {
             this._updateMarker(marker, title, text, type, onClick);
         }
         else {
-            var markersLayer = this._getMarkersLayer(type);           
+            var markersLayer = this._getMarkersLayer(type);
 
             marker = new OpenLayers.AdvancedMarker(this, type, markersLayer, this.map, lonlat, title, text, function(marker) {
                 if (!marker.isSelected() && (this.selectedMarker != null)) {
@@ -185,27 +178,25 @@ conwet.map.MarkerManager = Class.create({
             onClick(marker);
         }
     },
-            
-    setHighlightMarker: function (lonlat){
+    setHighlightMarker: function(lonlat) {
         var marker = this._getExistingMarker(lonlat); // Si el marcador ya existe
         if (marker != null) {
-            if (this.selectedMarker!=null){
+            if (this.selectedMarker != null) {
                 this.selectedMarker.setSelected(false);
             }
-            this.selectedMarker=marker;
+            this.selectedMarker = marker;
             this._updateToolbar();
             this.selectedMarker.setSelected(true);
             this.selectedMarker.addPopup();
             this.map.setCenter(this.selectedMarker.lonlat);
         }
     },
-
     _getExistingMarker: function(lonlat) {
         var layers = [this.queryMarkers, this.eventMarkers, this.userMarkers];
 
-        for (var i=0; i<layers.length; i++) {
+        for (var i = 0; i < layers.length; i++) {
             var markers = layers[i].markers;
-            for (var j=0; j<markers.length; j++) {
+            for (var j = 0; j < markers.length; j++) {
                 if (markers[j].exist(lonlat)) {
                     return markers[j];
                 }
@@ -214,10 +205,9 @@ conwet.map.MarkerManager = Class.create({
 
         return null;
     },
-
     _getMarkersLayer: function(type) {
         var markersLayer = null;
-        switch(type) {
+        switch (type) {
             case OpenLayers.AdvancedMarker.QUERY_MARKER:
                 markersLayer = this.queryMarkers;
                 break;
@@ -230,7 +220,6 @@ conwet.map.MarkerManager = Class.create({
 
         return markersLayer;
     },
-
     _updateMarker: function(marker, title, text, type, onClick) {
         marker.setText(text);
         marker.setTitle(title);
@@ -239,7 +228,7 @@ conwet.map.MarkerManager = Class.create({
         if (marker.getType() == type)
             return;
 
-        switch(marker.getType()) {
+        switch (marker.getType()) {
             case OpenLayers.AdvancedMarker.QUERY_MARKER:
                 this._changeTypeMarker(marker, type);
                 break;
@@ -250,7 +239,6 @@ conwet.map.MarkerManager = Class.create({
                 break;
         }
     },
-
     _changeTypeMarker: function(marker, type) {
         marker.getLayer().removeMarker(marker);
         marker.setType(type);
@@ -258,11 +246,9 @@ conwet.map.MarkerManager = Class.create({
         marker.setLayer(markersLayer);
         markersLayer.addMarker(marker);
     },
-
     getNumLayers: function() {
         return 4;
     },
-
     _removeAllMarkers: function() {
         this.userMarkers.clearMarkers();
         this.eventMarkers.clearMarkers();
@@ -272,22 +258,20 @@ conwet.map.MarkerManager = Class.create({
         this.selectedMarker = null;
         this.clearPopups();
         this._updateToolbar();
-        this.markers=[];
+        this.markers = [];
 
     },
-
     _removeTemporalMarkers: function() {
         this.queryMarkers.clearMarkers();
         this.eventMarkers.clearMarkers();
-        if ((this.selectedMarker != null) && 
+        if ((this.selectedMarker != null) &&
                 ((this.selectedMarker.getType() == OpenLayers.AdvancedMarker.QUERY_MARKER) ||
-                (this.selectedMarker.getType() == OpenLayers.AdvancedMarker.EVENT_MARKER))) {
+                        (this.selectedMarker.getType() == OpenLayers.AdvancedMarker.EVENT_MARKER))) {
             this.selectedMarker = null;
         }
         this.clearPopups();
         this._updateToolbar();
     },
-
     _removeSelectedMarker: function() {
         if (this.selectedMarker != null) {
             this.selectedMarker.getLayer().removeMarker(this.selectedMarker);
@@ -296,7 +280,6 @@ conwet.map.MarkerManager = Class.create({
             this._updateToolbar();
         }
     },
-
     _saveSelectedMarker: function() {
         if (this.selectedMarker != null) {
             this._changeTypeMarker(this.selectedMarker, OpenLayers.AdvancedMarker.USER_MARKER);
@@ -304,33 +287,57 @@ conwet.map.MarkerManager = Class.create({
             this._updateToolbar();
         }
     },
-
     clearPopups: function() {
-        for (var i=0; i<this.map.popups.length; i++) {
+        for (var i = 0; i < this.map.popups.length; i++) {
             var popup = this.map.popups[i];
             this.map.removePopup(popup);
             popup.destroy();
         }
     },
-    
-    setBox: function(positionInfos){
+    setBox: function(positionInfos) {
         var bounds = positionInfos.bbox;
         var transformer = new conwet.map.ProjectionTransformer(this.map);
         var newBounds = new OpenLayers.Bounds(); //bounds[2],bounds[1],bounds[0],bounds[3]        
-        newBounds.extend(transformer.transform(new OpenLayers.LonLat(bounds[0],bounds[1])));
-        newBounds.extend(transformer.transform(new OpenLayers.LonLat(bounds[2],bounds[3])));
-        
-        if (this.box!=null){
+        newBounds.extend(transformer.transform(new OpenLayers.LonLat(bounds[0], bounds[1])));
+        newBounds.extend(transformer.transform(new OpenLayers.LonLat(bounds[2], bounds[3])));
+
+        if (this.box != null) {
             this.boxesMarkers.removeMarker(this.box);
-            this.box=null;
+            this.box = null;
         }
-        
-        this.box =  new OpenLayers.Marker.Box(newBounds);
+
+        this.box = new OpenLayers.Marker.Box(newBounds);
         this.map.zoomToExtent(newBounds);
-        
-         
+
+
         this.boxesMarkers.addMarker(this.box);
         this._updateToolbar();
+    },
+    updateMarkers: function(oldProj, newProj) {
+        var markers2 = [];
+        var transformer = new conwet.map.ProjectionTransformer();
+
+        for (var i = 0; i < this.markers.length; i++) {
+            var updatedMarker = {
+                lonlat: {},
+                title: this.markers[i].title,
+                text: this.markers[i].text,
+                type: this.markers[i].type,
+                popup: this.markers[i].popup,
+                center: this.markers[i].center,
+                onClick: this.markers[i].onClick
+            }
+            updatedMarker.lonlat = transformer.advancedTransform(new OpenLayers.LonLat(this.markers[i].lon, this.markers[i].lat), oldProj, newProj);
+            markers2[i] = updatedMarker;
+
+        }
+        
+        this._removeAllMarkers();
+        
+        for (var i = 0; i < markers2.length; i++) {
+            this._setMarker(markers2[i].lonlat, markers2[i].title, markers2[i].text, markers2[i].type, markers2[i].popup, markers2[i].center, markers2[i].onClick )
+        }
+        
     }
 
 });

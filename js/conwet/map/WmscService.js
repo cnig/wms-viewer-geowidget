@@ -1,6 +1,6 @@
 /*
- *     Copyright (c) 2013 CoNWeT Lab., Universidad Politécnica de Madrid
- *     Copyright (c) 2013 IGN - Instituto Geográfico Nacional
+ *     Copyright (c) 2014 CoNWeT Lab., Universidad Politécnica de Madrid
+ *     Copyright (c) 2014 IGN - Instituto Geográfico Nacional
  *     Centro Nacional de Información Geográfica
  *     http://www.ign.es/
  *

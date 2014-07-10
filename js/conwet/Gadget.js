@@ -34,6 +34,7 @@ conwet.Gadget = Class.create({
         this.featureInfoEvent = new conwet.events.Event('feature_info_event');
         this.gadgetInfoEvent = new conwet.events.Event('map_info_event');
         this.legendUrl = new conwet.events.Event('legend_url');
+        this.positionInfos = [];
 
         this.locationSlot = new conwet.events.Slot('location_slot', this.setMarker.bind(this));
         this.locationInfoSlot = new conwet.events.Slot('location_info_slot', function(location) {
@@ -57,8 +58,9 @@ conwet.Gadget = Class.create({
                         this.addWmsService(service);
                     } else if (service.type == "WMSC") {
                         this.addWmscService(service);
+                    } else if (service.type == "WMTS"){
+                        this.addWmtsService(service);
                     }
-
                 }
             }
         }.bind(this));
@@ -143,6 +145,9 @@ conwet.Gadget = Class.create({
     addWmscService: function(wmscService) {
         this.mapManager.addWmscService(wmscService.name, wmscService.url);
     },
+    addWmtsService: function(wmtsService) {
+        this.mapManager.addWmtsService(wmtsService.name, wmtsService.url);
+    },
     sendFeatureInfo: function(feature) {
         this.featureInfoEvent.send(feature);
     },
@@ -164,7 +169,11 @@ conwet.Gadget = Class.create({
                 this.mapManager.setEventMarker(positionInfos[0]);
         }
     },
-    setInfoMarkers: function(positionInfos) {
+    setInfoMarkers: function(positionInfos) {        
+        if (positionInfos.length  && this.init){
+            this.positionInfos = positionInfos;
+        }
+        
         if (positionInfos.length  && !this.init) {
             if (positionInfos[0].bbox != null)
                 this.mapManager.setBox(positionInfos[0]);
@@ -199,6 +208,7 @@ conwet.Gadget = Class.create({
     stopInit: function() {
         this.reacting_to_wiring_event = false;
         this.init = false;
+        this.setInfoMarkers(this.positionInfos);
     },
     reactingToWiring: function() {
         return this.reacting_to_wiring_event;

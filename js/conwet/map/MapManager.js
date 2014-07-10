@@ -192,6 +192,9 @@ conwet.map.MapManager = Class.create({
     addWmscService: function(name, url) {
         this.owsManager.addWmscService(name, url);
     },
+    addWmtsService: function(name, url) {
+        this.owsManager.addWmtsService(name, url);
+    },            
     _setZoomLevel: function(zoomLevel) {
         zoomLevel = (zoomLevel < 0) ? 0 : zoomLevel;
         zoomLevel = (zoomLevel >= this.getNumZoomLevels()) ? this.getNumZoomLevels() - 1 : zoomLevel;
@@ -229,7 +232,7 @@ conwet.map.MapManager = Class.create({
     },
     setEventMarkers: function(positionInfos) {
         this.markerManager.eventMarkers.clearMarkers();
-
+        
         for (var i = 0; i < positionInfos.length; i++) {
             var location = positionInfos[i];
             this._setMarker(this.transformer.transform(new OpenLayers.LonLat(location.lon, location.lat)), location.title, "", OpenLayers.AdvancedMarker.EVENT_MARKER, true, false);
@@ -287,7 +290,11 @@ conwet.map.MapManager = Class.create({
         if (!conwet.map.ProjectionTransformer.compareLonlat(this.center, center) || (this.zoomLevel != zoomLevel)) {
             this.map.setCenter(newCenter, zoomLevel);
         }
-
-
+    },
+    updateMarkers: function(oldProj, newProj) {
+        if (this.markerManager != null)
+            this.markerManager.updateMarkers(oldProj, newProj);
     }
+
+
 });

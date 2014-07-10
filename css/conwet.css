@@ -172,6 +172,10 @@ html, body {
 }
 
 .styled_select > div > .text {
-   display: none;
+    display: none;
 }
 
+.gm-style div, .gm-style span, .gm-style label, .gm-style a {
+    font-size: 13px;
+    font-family: sans-serif;    
+}

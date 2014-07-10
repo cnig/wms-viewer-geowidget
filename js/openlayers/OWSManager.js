@@ -188,7 +188,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
 
         this.serverSelect.addEntries(this.initialServers);
 
-        this.preloadWmsLayer("http://www.ign.es/wms-inspire/ign-base", "IGNBaseTodo", "EPSG:4258", "image/jpeg", true);
+        this.preloadWmsLayer("http://www.ign.es/wms-inspire/ign-base", "IGNBaseTodo", "EPSG:4258", "image/jpeg", true, "wms");
 
 
         //TODO si no hay nada configurado
@@ -219,7 +219,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         var entry = {label: name, value: url}
         if (this._serverIndex(url) == -1) {
             this.serverSelect.addEntries([entry]);
-            this.initialServers.push({label: name, value: url, isWmsc: false});
+            this.initialServers.push({label: name, value: url, isWmsc: false, isWmts: false});
             MashupPlatform.widget.getVariable("services").set(JSON.stringify(this.initialServers));
             this.gadget.showMessage(_("Nuevo servidor añadido."));
         } else {
@@ -231,8 +231,20 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         var entry = {label: name, value: url}
         if (this._serverIndex(url) == -1) {
             this.serverSelect.addEntries([entry]);
-            this.initialServers.push({label: name, value: url, isWmsc: true});
+            this.initialServers.push({label: name, value: url, isWmsc: true, isWmts: false});
             MashupPlatform.widget.getVariable("services").set(Object.toJSON(this.initialServers));
+            this.gadget.showMessage(_("Nuevo servidor añadido."));
+        } else {
+            this.gadget.showMessage(_("Este servidor ya existe."));
+        }
+
+    },
+    addWmtsService: function(name, url) {
+        var entry = {label: name, value: url}
+        if (this._serverIndex(url) == -1) {
+            this.serverSelect.addEntries([entry]);
+            this.initialServers.push({label: name, value: url, isWmsc: false, isWmts: true});
+            MashupPlatform.widget.getVariable("services").set(JSON.stringify(this.initialServers));
             this.gadget.showMessage(_("Nuevo servidor añadido."));
         } else {
             this.gadget.showMessage(_("Este servidor ya existe."));
@@ -241,17 +253,17 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
     },
     _sendGetCapabilities: function(select) {
         var baseURL = select.getValue();
-        var isWmsc = this._isWmsc(baseURL);
-
+        //var isWmsc = this._isWmsc(baseURL);
+        var type = this.serviceType(baseURL);
 
         if (this.serverForm) {
             this.serverForm.innerHTML = "";
         }
-        
-       /* if (baseURL.toLowerCase().indexOf("wmsc")!==-1 || baseURL.toLowerCase().indexOf("wms-c")!==-1){
-             this.gadget.showError("This server is not WMS. WMSC and WMTS are not supported");
-             return;
-        }*/
+
+        /* if (baseURL.toLowerCase().indexOf("wmsc")!==-1 || baseURL.toLowerCase().indexOf("wms-c")!==-1){
+         this.gadget.showError("This server is not WMS. WMSC and WMTS are not supported");
+         return;
+         }*/
         if (baseURL.length == 0) {
             return;
         }
@@ -264,21 +276,25 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         }
 
         this.gadget.showMessage(_("Solicitando datos al servidor."), true);
-        baseURL += "service=WMS&version=1.3.0&request=GetCapabilities";
+        if (type == "wmts"){
+            baseURL += "service=WMTSC&version=1.0.0&request=GetCapabilities";
+        }else{
+            baseURL += "service=WMS&version=1.3.0&request=GetCapabilities";
+        }
 
         //TODO Gif chulo para esperar
         MashupPlatform.http.makeRequest(baseURL, {
             method: 'GET',
             onSuccess: function(response) {
                 this.gadget.hideMessage();
-                this._parseGetCapabilities(baseURL, response, isWmsc, false);
+                this._parseGetCapabilities(baseURL, response, type, false);
             }.bind(this),
             onFailure: function() {
                 this.gadget.showError(_("El servidor no responde."));
             }.bind(this)
         });
     },
-    _parseGetCapabilities: function(baseURL, ajaxResponse, isWmsc, init) {
+    _parseGetCapabilities: function(baseURL, ajaxResponse, type, init) {
         var xml;
         if (ajaxResponse.responseXML == null) {
             var text = ajaxResponse.responseText;
@@ -286,7 +302,8 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
             text = text.replace(/\[.<!.*?>.\]/g, '');                       // Helped with ESA server
             text = text.replace(/<GetTileService>.*?GetTileService>/g, ''); // Skip NASA DTD error
 
-            xml = this.parseDOMFromString(text, 'application/xml', true);
+            if (this.type!="wmts")
+                xml = this.parseDOMFromString(text, 'application/xml', true);
 
             if (xml == null || typeof xml != 'object')
                 return this.gadget.showError('Incorrect content: check your WMS url');
@@ -308,8 +325,10 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         if (xml != null) {
             var service;
             try {
-                if (isWmsc) {
+                if (type == "wmsc") {
                     service = new conwet.map.WmscService(xml);
+                } else if (type == "wmts") {
+                    service = new conwet.map.WmtsService(xml);
                 } else {
                     service = new conwet.map.WmsService(xml);
                 }
@@ -326,6 +345,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
     },
     _drawServersForm: function(baseURL) {
         var service = this.wmsManager.getService(baseURL);
+        var type = this.serviceType(baseURL.split("?")[0]);
 
         // Info div
         var infoDiv = document.createElement("div");
@@ -424,7 +444,8 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
                 layerName: layer.layer.name,
                 projection: projectionSelect.getValue(),
                 imageFormat: imageFormatSelect.getValue(),
-                isBaseLayer: baseLayerButton.checked
+                isBaseLayer: baseLayerButton.checked,
+                type: type
             };
             var list = (layerData.isBaseLayer) ? this.layersData.baseLayers : this.layersData.overlays;
 
@@ -483,16 +504,18 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         layer.addFeatures((new OpenLayers.Format.GeoJSON()).read(json));
         this.map.addLayer(layer);
     },
-    _addWMSLayer: function(url, layer, projection, imageType, isBaseLayer, init, last) {
+    _addWMSLayer: function(url, layer, projection, imageType, isBaseLayer, init, last, type) {
 
         if ((!isBaseLayer) && (imageType == 'image/jpeg'))
             return this.gadget.showError('you cannot select JPEG format for overlays, please choose another format');
 
         this.showTab(this.TAB_LAYERS);
-        var isWmsc = this._isWmsc(url.split('?')[0]);
+        
+        if (!type)
+            type = this.serviceType(url.split('?')[0]);
 
 
-        this.selectedLayersManager.createLayer(url, layer, projection, imageType, isBaseLayer, init, last, isWmsc);
+        this.selectedLayersManager.createLayer(url, layer, projection, imageType, isBaseLayer, init, last, type);
     },
     /*addMarkerLayer: function(layer) {
      this.selectedLayersManager.addLayer(layer, false);
@@ -529,6 +552,20 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         }
 
         return isWmsc;
+    },
+    serviceType: function(serverUrl) {
+        var index = this._serverIndex(serverUrl);
+
+
+        if (index != -1) {
+            if (this.initialServers[index].isWmsc)
+                return "wmsc";
+            else if (this.initialServers[index].isWmts)
+                return "wmts";
+            else
+                return "wms";
+        }
+        return null;
     },
     /*_preloadCapabilities: function() {
      for (var i = 0; i < this.initialServers.length; i++) {
@@ -576,9 +613,10 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
 
             var layerData = this.layersData.overlays[i];
             // var isLast = last && i === (this.layersData.overlays.length-1);
+            //var type = this.serviceType();
 
             this.preloadWmsLayer(layerData.serverUrl, layerData.layerName, layerData.projection,
-                    layerData.imageFormat, layerData.isBaseLayer, true);
+                    layerData.imageFormat, layerData.isBaseLayer, layerData.type);
         }
 
         for (var i = 0; i < this.layersData.baseLayers.length; i++) {
@@ -587,18 +625,26 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
 
             this.preloadWmsLayer(layerData.serverUrl, layerData.layerName, layerData.projection,
                     layerData.imageFormat, layerData.isBaseLayer, //(i === this.layersData.baseLayers.length - 1));
-                    true);
+                    layerData.type);
         }
 
 
     },
-    preloadWmsLayer: function(serverUrl, layerName, projection, imageFormat, isBaseLayer) {
-        var url = serverUrl + "?service=WMS&version=1.3.0&request=GetCapabilities";
+    preloadWmsLayer: function(serverUrl, layerName, projection, imageFormat, isBaseLayer, type) {
+        var url = serverUrl;
+        
+        if (type == "wmts") 
+            url += "?service=WMTS&version=1.0.0&request=GetCapabilities";
+        else if (type == "wmsc")
+            url += "?service=WMSC&version=1.3.0&request=GetCapabilities";        
+        else
+            url += "?service=WMS&version=1.3.0&request=GetCapabilities";
+        
         MashupPlatform.http.makeRequest(url, {
             method: 'GET',
             onSuccess: function(response) {
                 this.gadget.hideMessage();
-                this._parseGetCapabilities(url, response, false, true);
+                this._parseGetCapabilities(url, response, type, true);
                 var service = this.wmsManager.getService(serverUrl);
                 var layers = service.getLayers();
                 var layer;
@@ -612,7 +658,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
                 if (layerName !== "IGNBaseTodo") {
                     this.numLayers--;
                 }
-                this._addWMSLayer(serverUrl, layer, projection, imageFormat, isBaseLayer, true, !(this.numLayers));
+                this._addWMSLayer(serverUrl, layer, projection, imageFormat, isBaseLayer, true, !(this.numLayers), type);
 
 
                 if (layerName == "IGNBaseTodo") {
@@ -726,52 +772,3 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
 });
 
 
-
-/** Sarissa derived getParseErrorText
- 
- OpenLayers.Ajax.PARSED_OK = "Document contains no parsing errors";
- OpenLayers.Ajax.PARSED_EMPTY = "Document is empty";
- OpenLayers.Ajax.PARSED_UNKNOWN_ERROR = "Not well-formed or other error";
- 
- OpenLayers.Ajax.getParseErrorText = function(oDoc) {
- //this is only the IE version from Sarissa
- var parseErrorText = OpenLayers.Ajax.PARSED_OK;
- if (oDoc && oDoc.parseError && oDoc.parseError.errorCode && oDoc.parseError.errorCode != 0) {
- parseErrorText = "XML Parsing Error: " + oDoc.parseError.reason + "\nLocation: " + oDoc.parseError.url + "\nLine Number " + oDoc.parseError.line + ", Column " + oDoc.parseError.linepos + ":\n" + oDoc.parseError.srcText + "\n";
- for (var i = 0; i < oDoc.parseError.linepos; i++) {
- parseErrorText += "-";
- }
- ;
- parseErrorText += "^\n";
- } else if (oDoc.documentElement == null) {
- parseErrorText = OpenLayers.Ajax.PARSED_EMPTY;
- }
- ;
- return parseErrorText;
- };
- 
- /*OpenLayers.Ajax.escape = function (sXml) {
- return sXml.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
- };
- 
- OpenLayers.Ajax.unescape = function (sXml) {
- return sXml.replace(/&apos;/g, "'").replace(/&quot;/g, "\"").replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&amp;/g, "&");
- };
- 
- 
- if (!window.Node || !Node.ELEMENT_NODE) {
- Node = {
- ELEMENT_NODE: 1,
- ATTRIBUTE_NODE: 2,
- TEXT_NODE: 3,
- CDATA_SECTION_NODE: 4,
- ENTITY_REFERENCE_NODE: 5,
- ENTITY_NODE: 6,
- PROCESSING_INSTRUCTION_NODE: 7,
- COMMENT_NODE: 8,
- DOCUMENT_NODE: 9,
- DOCUMENT_TYPE_NODE: 10,
- DOCUMENT_FRAGMENT_NODE: 11,
- NOTATION_NODE: 12
- };
- };*/
