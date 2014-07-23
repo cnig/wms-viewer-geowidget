@@ -159,7 +159,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
         removeButton.observe("mousedown", this.removeService.bind(this));
         removeButton.appendChild(document.createTextNode(_('X')));
         var span = document.createElement('span');
-        span.title = "Borrar Servidor";
+        span.title = "Remove Server";
         span.appendChild(removeButton)
         servDiv.appendChild(span);
 
@@ -221,9 +221,9 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
             this.serverSelect.addEntries([entry]);
             this.initialServers.push({label: name, value: url, isWmsc: false, isWmts: false});
             MashupPlatform.widget.getVariable("services").set(JSON.stringify(this.initialServers));
-            this.gadget.showMessage(_("Nuevo servidor añadido."));
+            this.gadget.showMessage(_("New server added."));
         } else {
-            this.gadget.showMessage(_("Este servidor ya existe."));
+            this.gadget.showMessage(_("This server already exists."));
         }
 
     },
@@ -233,9 +233,9 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
             this.serverSelect.addEntries([entry]);
             this.initialServers.push({label: name, value: url, isWmsc: true, isWmts: false});
             MashupPlatform.widget.getVariable("services").set(Object.toJSON(this.initialServers));
-            this.gadget.showMessage(_("Nuevo servidor añadido."));
+            this.gadget.showMessage(_("New server added."));
         } else {
-            this.gadget.showMessage(_("Este servidor ya existe."));
+            this.gadget.showMessage(_("This server already exists."));
         }
 
     },
@@ -245,9 +245,9 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
             this.serverSelect.addEntries([entry]);
             this.initialServers.push({label: name, value: url, isWmsc: false, isWmts: true});
             MashupPlatform.widget.getVariable("services").set(JSON.stringify(this.initialServers));
-            this.gadget.showMessage(_("Nuevo servidor añadido."));
+            this.gadget.showMessage(_("New server added."));
         } else {
-            this.gadget.showMessage(_("Este servidor ya existe."));
+            this.gadget.showMessage(_("This server already exists."));
         }
 
     },
@@ -275,7 +275,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
                 baseURL = baseURL.slice(0, -1);
         }
 
-        this.gadget.showMessage(_("Solicitando datos al servidor."), true);
+        this.gadget.showMessage(_("Requesting data from server."), true);
         if (type == "wmts"){
             baseURL += "service=WMTSC&version=1.0.0&request=GetCapabilities";
         }else{
@@ -290,7 +290,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
                 this._parseGetCapabilities(baseURL, response, type, false);
             }.bind(this),
             onFailure: function() {
-                this.gadget.showError(_("El servidor no responde."));
+                this.gadget.showError(_("Server not responding."));
             }.bind(this)
         });
     },
@@ -589,7 +589,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
      baseURL = baseURL.slice(0, -1);
      }
      
-     this.gadget.showMessage(_("Solicitando datos al servidor."), true);
+     this.gadget.showMessage(_("Requesting data from server."), true);
      baseURL += "service=WMS&version=2.0&request=GetCapabilities";
      
      //TODO Gif chulo para esperar
@@ -600,7 +600,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
      this._parseGetCapabilities(baseURL, response, isWmsc, true);
      }.bind(this),
      onFailure: function() {
-     this.gadget.showError(_("El servidor no responde."));
+     this.gadget.showError(_("Server not responding."));
      }.bind(this)
      });
      }
@@ -670,7 +670,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
             onFailure: function() {
                 if (layerName == "IGNBaseTodo")
                     this.selectedLayersManager.selectPreviousLayerAndZoom();
-                this.gadget.showError(_("El servidor no responde."));
+                this.gadget.showError(_("Server not responding."));
                 this.numLayers--;
                 this.selectedLayersManager.deleteLayerFromState(layerName);
             }.bind(this)
@@ -690,7 +690,7 @@ OpenLayers.Control.OWSManager = OpenLayers.Class(OpenLayers.Control, {
             this.serverSelect.addEntries(this.initialServers);
             this.serverForm.innerHTML = "";
             this.selectedLayersManager.removeService(url);
-            this.gadget.showMessage(_("El servidor '" + name + "' ha sido eliminado junto a sus capas correspondientes."));
+            this.gadget.showMessage(_("The server '" + name + "' and its layers have been removed."));
         }
     },
     parseDOMFromString: function(text, type, fromAjax) {

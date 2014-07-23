@@ -330,7 +330,7 @@ conwet.map.SelectedLayersManager = Class.create({
             this._disableOverlays();
 
             if (!init)
-                this.gadget.showMessage((isBaseLayer) ? _("Nueva capa base.") : _("Nueva capa."));
+                this.gadget.showMessage((isBaseLayer) ? _("New base layer added.") : _("New overlay layer added."));
 
             this._selectLayerObj(layerObj, isBaseLayer);
             if (last && init) {
@@ -364,7 +364,7 @@ conwet.map.SelectedLayersManager = Class.create({
         else {
             layerObj = list[index];
             if (!init)
-                this.gadget.showMessage(_("La capa ya existe."));
+                this.gadget.showMessage(_("The layer already exist."));
         }
 
 
