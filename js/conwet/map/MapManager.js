@@ -56,7 +56,7 @@ conwet.map.MapManager = Class.create({
             }});
         this.map.addControl(this.mousePosition);
 
-        this.map.addControl(new OpenLayers.Control.PanPanel());
+        //this.map.addControl(new OpenLayers.Control.PanPanel());
         //this.map.addControl(new OpenLayers.Control.OverviewMap());
 
         //this.map.addControl(new OpenLayers.Control.MyScale()); //ScaleLine
@@ -110,8 +110,19 @@ conwet.map.MapManager = Class.create({
         this.map.events.register("moveend", this, function() {
 
             var changes = {};
-
-            var center = this.transformer.normalize(this.map.getCenter());
+            var bounds = this.map.getExtent();
+            var upLeft = new OpenLayers.LonLat(bounds.left, bounds.top);
+            var downRight = new OpenLayers.LonLat(bounds.right, bounds.bottom);
+            
+            upLeft = this.transformer.normalize(upLeft);
+            downRight = this.transformer.normalize(downRight);
+            
+            var upperLeftCorner =  {longitude: upLeft.lon, latitude: upLeft.lat};
+            var lowerRightCorner =  {longitude: downRight.lon, latitude: downRight.lat};
+            changes.bounds = {upperLeftCorner:upperLeftCorner, lowerRightCorner:lowerRightCorner};
+            var markers = this.markerManager.getMarkersInfo();
+            this.sendMarkers(markers);
+            /*var center = this.transformer.normalize(this.map.getCenter());
             var zoomLevel = this.map.getZoom();
 
             if (this.zoomLevel != zoomLevel) {
@@ -124,13 +135,14 @@ conwet.map.MapManager = Class.create({
             if (!conwet.map.ProjectionTransformer.compareLonlat(this.center, center)) {
                 this.center = center;
                 changes['center'] = center;
-            }
+            }*/
 
             if (!this.gadget.reactingToWiring()) {
-                if (('zoom' in changes) || ('center' in changes)) {
+                /*if (('zoom' in changes) || ('center' in changes)) {
                     //this.markerManager.
                     this._onMove(changes);
-                }
+                }*/
+                this._onMove(changes);
             }
             /*} else {
              this.gadget.stopInit();
@@ -144,7 +156,7 @@ conwet.map.MapManager = Class.create({
         this.map.events.register("movestart", this, function() {
             this.isDrag = true;
             this.mousePosition.deactivate();
-            // TODO Si haces dos drag seguidos sin mover el cursor, desaparecen las coordenadas
+            
             this._onBeforeDrag();
         }.bind(this));
 
@@ -167,8 +179,22 @@ conwet.map.MapManager = Class.create({
         }
         else if ('center' in state) {
             this.setCenter(state.center.lon, state.center.lat);
+        }else if ('bounds' in state){
+            this.setBounds(state.bounds);
         }
+       
 
+    },
+    setBounds: function(bounds){
+        var upperLeftCorner = bounds.upperLeftCorner;
+        var lowerRightCorner = bounds.lowerRightCorner;
+        var topLeft = new OpenLayers.LonLat(upperLeftCorner.longitude, upperLeftCorner.latitude);
+        var bottomRight = new OpenLayers.LonLat(lowerRightCorner.longitude, lowerRightCorner.latitude);
+        
+        topLeft = this.transformer.transform(topLeft);
+        bottomRight = this.transformer.transform(bottomRight);
+        //left, bottom, right, top
+        this.map.zoomToExtent([topLeft.lon, bottomRight.lat, bottomRight.lon, topLeft.lat], true);
     },
     setCenter: function(lon, lat) {
         var center = this.transformer.transform(new OpenLayers.LonLat(lon, lat));
@@ -224,29 +250,64 @@ conwet.map.MapManager = Class.create({
     _onAfterDrag: function() {
         // To overwrite
     },
-    setUserMarker: function(lon, lat, title, text) {
-        text = (arguments.length > 4) ? text : "";
-        title = (arguments.length > 3) ? title : "";
-
-        this._setMarker(new OpenLayers.LonLat(lon, lat), title, text, OpenLayers.AdvancedMarker.USER_MARKER, true);
-    },
-    setEventMarkers: function(positionInfos) {
-        this.markerManager.eventMarkers.clearMarkers();
+    setUserMarker: function(lon, lat, title, subtitle) {
         
-        for (var i = 0; i < positionInfos.length; i++) {
-            var location = positionInfos[i];
-            this._setMarker(this.transformer.transform(new OpenLayers.LonLat(location.lon, location.lat)), location.title, "", OpenLayers.AdvancedMarker.EVENT_MARKER, true, false);
+        var id = null;
+        var icon = null;
+        subtitle = (arguments.length > 4) ? subtitle : "";
+        title = (arguments.length > 3) ? title : "";
+        var lonlat = new OpenLayers.LonLat(lon, lat);
+        var type = OpenLayers.AdvancedMarker.USER_MARKER;
+        
+        this._setMarker(id, icon, title, subtitle, lonlat, type, true, false);
+    },
+    
+    /*
+     * Function that adds multiple markers simultaneously
+     */
+    setEventMarkers: function(markers) {        
+        
+        for (var i = 0; i < markers.length; i++) {            
+            this.setEventMarker(markers[i], false);
         }
 
     },
-    setEventMarker: function(positionInfo) {
-
-        var location = positionInfo;
-        this._setMarker(this.transformer.transform(new OpenLayers.LonLat(location.lon, location.lat)), location.title, "", OpenLayers.AdvancedMarker.EVENT_MARKER, true, true)
+    /*
+     * Adds a marker to the map.
+     * Marker: Object with the following structure.
+     *  • id.
+     *  • title.
+     *  • subtitle.
+     *  • icon: Image URL.
+     *  • tooltip:
+     *  • coordinates:
+     *      ◦ longitude.
+     *      ◦ latitude.
+     * center: True if the map must be centered in the new added marker
+     */
+    setEventMarker: function(marker, center) {
+        //Coordenates transformation
+        if (!marker.id){
+            throw "Marker must have an id in order to be added";
+        }
+            
+        var lonlat = new OpenLayers.LonLat(marker.coordinates.longitude, marker.coordinates.latitude)
+        lonlat = this.transformer.transform(lonlat);
+        
+        var icon = (marker.icon != null) ? marker.icon : null;
+        var title = (marker.title != null) ? marker.title : "";
+        var subtitle = (marker.subtitle != null) ? marker.subtitle : "";
+        var type = OpenLayers.AdvancedMarker.EVENT_MARKER;
+        
+        this._setMarker(marker.id, icon, title, subtitle, lonlat, type ,true, center)
 
     },
-    setHighlightMarker: function(lonlat) {
-        this.markerManager.setHighlightMarker(this.transformer.transform(new OpenLayers.LonLat(lonlat.lon, lonlat.lat)));
+    selectPoi: function(id) {
+
+        this.markerManager.setHighlightMarker(id);
+    },
+    deletePoi: function(id) {
+        this.markerManager.deleteMarker(id);
     },
     setQueryMarker: function(lon, lat, title, text) {
         text = (arguments.length > 4) ? text : "";
@@ -254,14 +315,22 @@ conwet.map.MapManager = Class.create({
 
         this._setMarker(this.transformer.transform(new OpenLayers.LonLat(lon, lat)), title, text, OpenLayers.AdvancedMarker.QUERY_MARKER, true);
     },
-    _setMarker: function(lonlat, title, text, type, popup, center, onClick) {
-        onClick = (arguments.length > 6) ? onClick : function() {
+    _setMarker: function(id, icon, title, subtitle, lonlat, type, popup, center, onClick) {
+        onClick = (arguments.length > 8) ? onClick : function() {
         };
 
-        this.markerManager.setMarker(lonlat, title, text, type, popup, center, function(marker) {
-            var ll = this.transformer.normalize(lonlat);
+        this.markerManager.setMarker(id, icon, title, subtitle, lonlat, type, popup, center, function(marker) {
+            
             onClick(marker);
-            this.getGadget().sendLocation(ll.lon, ll.lat);
+            //this.getGadget().sendLocation(ll.lon, ll.lat);
+            var markerInfo = marker.getInfo();
+                
+            var ll = this.transformer.normalize(lonlat);
+            markerInfo.coordinates = {
+                longitude: ll.lon,
+                latitude: ll.lat
+            };
+            this.getGadget().sendPoiInfo(markerInfo);
         }.bind(this));
     },
     getNumMarkerLayers: function() {
@@ -294,6 +363,9 @@ conwet.map.MapManager = Class.create({
     updateMarkers: function(oldProj, newProj) {
         if (this.markerManager != null)
             this.markerManager.updateMarkers(oldProj, newProj);
+    },
+    sendMarkers:function(markers){
+        this.gadget.sendPoisInfo(markers);
     }
 
 

@@ -26,21 +26,31 @@
  */
 
 OpenLayers.AdvancedMarker = OpenLayers.Class(OpenLayers.Marker, {
-    initialize: function(markerManager, type, layer, map, lonlat, title, text, onClick, options) {
-        this.imageIcons = [
-            "img/marker-user.png",
-            "img/marker-event.png",
-            "img/marker-query.png",
-            "img/marker-selected.png"
-        ];
-
+    initialize: function(id, image, markerManager, type, layer, map, lonlat, title, subtitle, onClick) {
+        if (image != null){
+            this.imageIcons = [
+                "img/marker-user.png",
+                "img/marker-event.png",
+                image,
+                image
+            ];
+        }else{
+            this.imageIcons = [
+                "img/marker-user.png",
+                "img/marker-event.png",
+                "img/marker-query.png",
+                "img/marker-selected.png"
+            ];
+        }
+        
+        this.id = id;
         this.markerManager = markerManager;
         this.type          = type;
         this.layer         = layer;
         this.map           = map;
         this.selected      = false;
         this.title         = title;
-        this.text          = text;
+        this.subtitle          = subtitle;
         this.onClick       = onClick;
         this.lon           = lonlat.lon;
         this.lat           = lonlat.lat;
@@ -113,7 +123,7 @@ OpenLayers.AdvancedMarker = OpenLayers.Class(OpenLayers.Marker, {
         content.appendChild(position);
         var text = document.createElement("div");
         $(text).addClassName("popup_text");
-        text.innerHTML = this.text;
+        text.innerHTML = this.subtitle;
         content.appendChild(text);
         return div.innerHTML;
     },
@@ -142,7 +152,7 @@ OpenLayers.AdvancedMarker = OpenLayers.Class(OpenLayers.Marker, {
     },
 
     setText: function(text) {
-        this.text = text;
+        this.subtitle = text;
     },
 
     setHandler: function(onClick) {
@@ -173,10 +183,12 @@ OpenLayers.AdvancedMarker = OpenLayers.Class(OpenLayers.Marker, {
         clearTimeout(this.timeOut)
         if (selected) {
             this._upOpacity();
+            this.centerInMap();
         }
         else {
             this.timeOut = setTimeout(this._downOpacity.bind(this), 2000);
         }
+        
         this.setUrl(this.imageIcons[(selected)? OpenLayers.AdvancedMarker.SELECTED_MARKER: this.type]);
         this.selected = selected;
     },
@@ -193,6 +205,25 @@ OpenLayers.AdvancedMarker = OpenLayers.Class(OpenLayers.Marker, {
 
     exist: function(lonlat) {
         return (this.lon == lonlat.lon) && (this.lat == lonlat.lat);
+    },
+            
+    getInfo: function(){
+        var lon = this.lon;
+        var lat = this.lat;
+        var id = this.id;
+        var title = this.title;
+        var subtitle = this.subtitle;
+        var icon = this.imageIcons[this.type];
+        var info = {
+            id: id,
+            title: title,
+            subtitle: subtitle,
+            icon: icon,
+            tooltip:"",
+            coordinates:{longitude: lon, latitude: lat}
+                
+        }        
+        return info;
     }
 
 });

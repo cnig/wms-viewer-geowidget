@@ -30,25 +30,45 @@ use("conwet");
 conwet.Gadget = Class.create({
     initialize: function() {
         this.init = true;
-        this.centerEvent = new conwet.events.Event('center_event');
+        this.poiSelectedOutput = new conwet.events.Event('poiSelectedOutput');
+        this.visiblePoiListOutput = new conwet.events.Event('visiblePoiListOutput');
         this.featureInfoEvent = new conwet.events.Event('feature_info_event');
-        this.gadgetInfoEvent = new conwet.events.Event('map_info_event');
+        this.gadgetInfoEvent = new conwet.events.Event('mapInfoOutput');
         this.legendUrl = new conwet.events.Event('legend_url');
         this.positionInfos = [];
 
-        this.locationSlot = new conwet.events.Slot('location_slot', this.setMarker.bind(this));
-        this.locationInfoSlot = new conwet.events.Slot('location_info_slot', function(location) {
-            location = JSON.parse(location);
-            if (typeof location == 'object') {
-                this.setInfoMarker(location);
+        //this.locationSlot = new conwet.events.Slot('location_slot', this.setMarker.bind(this));
+        this.poiInput = new conwet.events.Slot('poiInput', function(poi) {
+            poi = JSON.parse(poi);
+            if (typeof poi == 'object') {
+                if (poi.hasOwnProperty("length"))
+                    this.setInfoMarkers(poi);
+                else
+                    this.setInfoMarker(poi, false);
             }
         }.bind(this));
-        this.locationsInfoSlot = new conwet.events.Slot('locations_info_slot', function(location) {
-            location = JSON.parse(location);
-            if (typeof location == 'object') {
-                this.setInfoMarkers(location);
+        //poiInputCenter; deletePoiInput; selectPoiInput
+        this.poiInputCenter = new conwet.events.Slot('poiInputCenter', function(poi) {
+            poi = JSON.parse(poi);
+            if (typeof poi == 'object') {
+                this.setInfoMarker(poi, true);
             }
         }.bind(this));
+        
+        this.deletePoiInput = new conwet.events.Slot('deletePoiInput', function(poi) {
+            poi = JSON.parse(poi);
+            if (typeof poi == 'object' && poi.id != null) {                
+                this.deletePoi(poi.id);
+            }
+        }.bind(this));
+        
+        this.selectPoiInput = new conwet.events.Slot('selectPoiInput', function(poi) {
+            poi = JSON.parse(poi);
+            if (typeof poi == 'object' && poi.id != null) {                
+                this.selectPoi(poi.id);
+            }
+        }.bind(this));
+
 
         this.wmsServiceSlot = new conwet.events.Slot('wms_service_slot', function(service) {
             service = JSON.parse(service);
@@ -65,7 +85,7 @@ conwet.Gadget = Class.create({
             }
         }.bind(this));
 
-        this.gadgetInfoSlot = new conwet.events.Slot('map_info_slot', function(state) {
+        this.gadgetInfoSlot = new conwet.events.Slot('mapInfoInput', function(state) {
             this.reacting_to_wiring_event = true;
             state = JSON.parse(state);
             try {
@@ -97,7 +117,7 @@ conwet.Gadget = Class.create({
 
         this.reacting_to_wiring_event = true;
         this.mapManager = new conwet.map.MapManager(this, {
-            onMove: this.sendState.bind(this),
+            onMove:this.sendState.bind(this),
             onBeforeDrag: function() {
                 this.cursorManager.disableEvents();
                 this._disableOtherCursors();
@@ -119,21 +139,23 @@ conwet.Gadget = Class.create({
             /*if ("center" in state) {
                 this.sendCenter(state.center.lon, state.center.lat);
             }*/
-            this.gadgetInfoEvent.send(Object.toJSON(state));
+            this.gadgetInfoEvent.send(JSON.stringify(state));
         }
     },
     updateState: function(state) {
         if (!this.init) {
             if (typeof state == 'object') {
-                if (('lonlat' in state) || ('focus' in state)) {
-                    if ('lonlat' in state) {
-                        state.cursor = this.mapManager.getPixelFromLonLat(state.lonlat.lon, state.lonlat.lat);
+                if (('cursorCoordinates' in state) || ('focus' in state)) {
+                    if ('cursorCoordinates' in state) {
+                        state.cursor = this.mapManager.getPixelFromLonLat
+                        (state.cursorCoordinates.longitude, state.cursorCoordinates.latitude);
+                        
                         if (state.cursor) {
                             this.cursorManager.updateState(state);
                         }
                     }
                 }
-                if (('zoom' in state) || ('center' in state)) {
+                if (('zoom' in state) || ('center' in state) || ("bounds" in state)) {
                     this.mapManager.updateState(state);
                 }
             }
@@ -151,22 +173,21 @@ conwet.Gadget = Class.create({
     sendFeatureInfo: function(feature) {
         this.featureInfoEvent.send(feature);
     },
-    sendCenter: function(lon, lat) {
-        this.centerEvent.send(lon + "," + lat);
+    sendPoisInfo: function(poisInfo) {
+        this.visiblePoiListOutput.send(JSON.stringify(poisInfo));
     },
-    sendLocation: function(lon, lat) {
-        MashupPlatform.wiring.pushEvent('location_event', lon + "," + lat);
+    sendPoiInfo: function(poiInfo) {
+        this.poiSelectedOutput.send(JSON.stringify(poiInfo));
     },
-    setMarker: function(lonlat) {
-        this.mapManager.setHighlightMarker(JSON.parse(lonlat));
-
+    selectPoi: function(id) {
+        this.mapManager.selectPoi(id);
     },
-    setInfoMarker: function(positionInfos) {
-        if (positionInfos.length && !this.init) {
-            if (positionInfos[0].bbox != null)
-                this.mapManager.setBox(positionInfos[0]);
-            else
-                this.mapManager.setEventMarker(positionInfos[0]);
+    deletePoi: function(id) {
+        this.mapManager.deletePoi(id);
+    },
+    setInfoMarker: function(marker, center) {
+        if (!this.init){
+            this.mapManager.setEventMarker(marker, center);
         }
     },
     setInfoMarkers: function(positionInfos) {        
@@ -189,11 +210,11 @@ conwet.Gadget = Class.create({
         if (!lonlat)
             return;
         this.sendState({
-            'lonlat': {
-                'lon': lonlat.lon,
-                'lat': lonlat.lat
+            cursorCoordinates: {
+                longitude: lonlat.lon,
+                latitude: lonlat.lat
             },
-            'focus': false
+            focus: false
         });
     },
     showMessage: function(message, permanent) {

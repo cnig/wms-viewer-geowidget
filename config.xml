@@ -21,15 +21,31 @@
     </Platform.StateProperties>
 
     <Platform.Wiring>
-        <InputEndpoint name="map_info_slot"       type="text" label="Map info"         friendcode="map_info"/>
-        <InputEndpoint name="wms_service_slot"    type="text" label="WMS info"         friendcode="service_info"/>
-        <InputEndpoint name="location_slot"       type="text" label="Highlight Location"         friendcode="location"/>
-        <InputEndpoint name="location_info_slot"  type="text" label="Location info"    friendcode="location_info"/>
-        <InputEndpoint name="locations_info_slot"  type="text" label="Locations info"    friendcode="location_info"/>
+        <InputEndpoint name="addressInput" type ="text" label="Address" friendcode="address" />
+        <InputEndpoint name="mapInfoInput" type="text" label="Map info"         friendcode="map_info"/>
+        <InputEndpoint name="wms_service_slot" type="text" label="WMS info"         friendcode="service_info"/>
+        <InputEndpoint name="poiInput"         type="text" label="Insert/Update PoI"         friendcode="poi"/>
+        <InputEndpoint name="poiInputCenter"    type="text" label="Insert/Update Centered PoI"    friendcode="poi"/>
+        <InputEndpoint name="deletePoiInput"    type="text" label="Delete PoI"    friendcode="poi"/>
+        <InputEndpoint name="selectPoiInput"    type="text" label="Select PoI"    friendcode="poi"/>
+        <InputEndpoint
+            name="routeInput"
+            type="text"
+            description="Google Maps route to be displayed on the map."
+            label="Route"
+            action_label="Map Viewer Route"
+            friendcode="route"/>
+        <InputEndpoint
+            name="routeStepInput"
+            type="text"
+            description="Detailed Step of a route. It may be connected with Route Description widget."
+            label="Route Step"
+            action_label="Map Viewer Details Steps Route"
+            friendcode="detailStep"/>
 
-        <OutputEndpoint name="map_info_event"     type="text" label="Map info"         friendcode="map_info"/>
-        <OutputEndpoint name="location_event"     type="text" label="Location LongLat" friendcode="location"/>
-        <OutputEndpoint name="center_event"       type="text" label="Center LongLat"   friendcode="location"/>
+        <OutputEndpoint name="mapInfoOutput"     type="text" label="Map info"         friendcode="map_info"/>
+        <OutputEndpoint name="visiblePoiListOutput"     type="text" label="Visible PoI List" friendcode="poi"/>
+        <OutputEndpoint name="poiSelectedOutput"       type="text" label="PoI Selected"   friendcode="poi"/>
         <OutputEndpoint name="feature_info_event" type="text" label="Feature info"     friendcode="feature_info"/>
         <OutputEndpoint name="legend_url"         type="text" label="Url de leyenda"   friendcode="url"/>
 
