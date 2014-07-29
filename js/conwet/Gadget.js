@@ -68,6 +68,11 @@ conwet.Gadget = Class.create({
                 this.selectPoi(poi.id);
             }
         }.bind(this));
+        
+        this.addressInput = new conwet.events.Slot('addressInput', function(address){
+            address = JSON.parse(address);
+            this.addAddressPoi(address);
+        }.bind(this))
 
 
         this.wmsServiceSlot = new conwet.events.Slot('wms_service_slot', function(service) {
@@ -236,6 +241,33 @@ conwet.Gadget = Class.create({
     },
     setReactingToWiring: function(reacting) {
         this.reacting_to_wiring_event = reacting;
+    },
+            
+    addAddressPoi: function(addressInfo){
+        var id = addressInfo.id;
+        var query = addressInfo.address;
+        
+        var geocoder = new google.maps.Geocoder();
+        var geocoderRequest = {
+            address: query
+        };
+        /* Google has an asynchronous service */
+        geocoder.geocode(geocoderRequest, function (gcResult, gcStatus) {
+            if (gcStatus == google.maps.GeocoderStatus.OK) {
+                var latlng = gcResult[0].geometry.location;
+                var marker = {
+                    id: id,
+                    title:query,
+                    coordinates:{
+                        longitude: latlng.e,
+                        latitude:  latlng.d
+                    }
+                };
+                this.setInfoMarker(marker, false);
+            }
+        }.bind(this))
     }
+    
+    
 
 });
