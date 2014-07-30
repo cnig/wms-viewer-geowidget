@@ -35,8 +35,9 @@ conwet.map.MarkerManager = Class.create({
 
         this.userMarkers = new OpenLayers.Layer.Markers("User  markers");
         this.eventMarkers = new OpenLayers.Layer.Markers("Event markers");
-        this.queryMarkers = new OpenLayers.Layer.Markers("Query markers");
+        this.queryMarkers = new OpenLayers.Layer.Markers("Query markers");        
         this.boxesMarkers = new OpenLayers.Layer.Boxes("Boxes");
+        this.routesLayer = new OpenLayers.Layer.Vector("Routes")
         this.map.addLayer(this.userMarkers);
         this.map.addLayer(this.eventMarkers);
         this.map.addLayer(this.queryMarkers);
@@ -44,7 +45,7 @@ conwet.map.MarkerManager = Class.create({
 
         this.lastUserMarker = 0;
         this.box = null;
-
+        this.transformer = new conwet.map.ProjectionTransformer(this.map);
         this.markers = {};
         this._drawToolbar();
         this.showToolbar(true); // TODO Toolbar visible solo en el modo Marker
@@ -276,7 +277,7 @@ conwet.map.MarkerManager = Class.create({
         markersLayer.addMarker(marker);
     },
     getNumLayers: function() {
-        return 4;
+        return 5;
     },
     _removeAllMarkers: function() {
         this.userMarkers.clearMarkers();
@@ -325,10 +326,10 @@ conwet.map.MarkerManager = Class.create({
     },
     setBox: function(positionInfos) {
         var bounds = positionInfos.bbox;
-        var transformer = new conwet.map.ProjectionTransformer(this.map);
+        
         var newBounds = new OpenLayers.Bounds(); //bounds[2],bounds[1],bounds[0],bounds[3]        
-        newBounds.extend(transformer.transform(new OpenLayers.LonLat(bounds[0], bounds[1])));
-        newBounds.extend(transformer.transform(new OpenLayers.LonLat(bounds[2], bounds[3])));
+        newBounds.extend(this.transformer.transform(new OpenLayers.LonLat(bounds[0], bounds[1])));
+        newBounds.extend(this.transformer.transform(new OpenLayers.LonLat(bounds[2], bounds[3])));
 
         if (this.box != null) {
             this.boxesMarkers.removeMarker(this.box);
@@ -343,8 +344,7 @@ conwet.map.MarkerManager = Class.create({
         this._updateToolbar();
     },
     updateMarkers: function(oldProj, newProj) {
-        var markers2 = {};
-        var transformer = new conwet.map.ProjectionTransformer(this.map);
+        var markers2 = {};       
 
         for (var id in this.markers) {
             var updatedMarker = {
@@ -356,7 +356,7 @@ conwet.map.MarkerManager = Class.create({
                 center: this.markers[id].center,
                 onClick: this.markers[id].onClick
             }
-            updatedMarker.lonlat = transformer.advancedTransform(new OpenLayers.LonLat(this.markers[id].lon, this.markers[id].lat), oldProj, newProj);
+            updatedMarker.lonlat = this.transformer.advancedTransform(new OpenLayers.LonLat(this.markers[id].lon, this.markers[id].lat), oldProj, newProj);
             markers2[id] = updatedMarker;
 
         }
@@ -370,7 +370,7 @@ conwet.map.MarkerManager = Class.create({
     },
     getMarkersInfo: function(){
         var bounds = this.map.getExtent();
-        var transformer = new conwet.map.ProjectionTransformer(this.map);
+        
         var visibleMarkers = [];
         for (var id in this.markers) {
             if (bounds.containsLonLat(this.markers[id].lonlat)) {
@@ -378,7 +378,7 @@ conwet.map.MarkerManager = Class.create({
                 var markerInfo = this.markers[id].getInfo();
                
                 
-                var lonlat = transformer.normalize(this.markers[id].lonlat);
+                var lonlat = this.transformer.normalize(this.markers[id].lonlat);
                 markerInfo.coordinates = {
                     longitude: lonlat.lon,
                     latitude: lonlat.lat
@@ -388,6 +388,40 @@ conwet.map.MarkerManager = Class.create({
             }
         }
         return visibleMarkers;
-    }    
+    }
+    /*
+     * This function creates a route given two ids from two existing markers in the map
+     *//*
+    createRouteFromMakers: function(id1, id2){
+        if (!this.markers[id1] || !this.markers[id2]){
+            throw "IDs must identify two existing markers."
+        }
+        var coords1 = this.markers[id1].lonlat;
+        var coords2 = this.markers[id2].lonlat;
+        
+        coords1 = this.transformer.normalize(coords1);
+        coords2 = this.transformer.normalize(coords2);
+        
+        if (route) {
+                var request = {
+                    origin: new google.maps.LatLng(route.from.lat, route.from.lng),
+                    destination: new google.maps.LatLng(route.to.lat, route.to.lng),
+                    travelMode: this.travelMode
+                };
+
+                this.directionsService.route(request, function (response, status) {
+                    if (status == google.maps.DirectionsStatus.OK) {
+                        this.directionsDisplay.setDirections(response);
+                        this.activeRoute.route = response.routes[0];
+                        if (this.activeRoute.stepInfoWindow) {
+                            this.activeRoute.stepInfoWindow.close();
+                        }
+                        MashupPlatform.wiring.pushEvent("routeDescriptionOutput", response.routes);
+                    }
+                }.bind(this));
+        
+        
+        
+    }*/
 
 });
