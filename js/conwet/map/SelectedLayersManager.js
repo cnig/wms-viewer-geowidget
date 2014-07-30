@@ -692,7 +692,9 @@ conwet.map.SelectedLayersManager = Class.create({
         }
 
         if (layerInfo.getLegendUrl()) {
-            this.gadget.legendUrl.send(layerInfo.getLegendUrl());
+            var url = {url:layerInfo.getLegendUrl()};
+            
+            this.gadget.legendUrl.send(JSON.stringify(url));
             //var img = document.createElement("img");
             //img.src = layerInfo.getLegendUrl();
             //table.appendChild(this._createTableRow(_("Legend"), img));

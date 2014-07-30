@@ -370,6 +370,12 @@ conwet.map.MapManager = Class.create({
     },
     sendMarkers:function(markers){
         this.gadget.sendPoisInfo(markers);
+    },
+    sendFeatureInfo: function(context){
+        var lonlat = this.map.getLonLatFromPixel(context.coordinates);
+        lonlat = this.transformer.normalize(lonlat);
+        context.coordinates = {longitude: lonlat.lon, latitude: lonlat.lat};
+        this.getGadget().sendFeatureInfo(context);
     }
 
 

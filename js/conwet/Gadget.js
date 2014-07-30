@@ -32,9 +32,9 @@ conwet.Gadget = Class.create({
         this.init = true;
         this.poiSelectedOutput = new conwet.events.Event('poiSelectedOutput');
         this.visiblePoiListOutput = new conwet.events.Event('visiblePoiListOutput');
-        this.featureInfoEvent = new conwet.events.Event('feature_info_event');
+        this.featureInfoEvent = new conwet.events.Event('featureInfoOutput');
         this.gadgetInfoEvent = new conwet.events.Event('mapInfoOutput');
-        this.legendUrl = new conwet.events.Event('legend_url');
+        this.legendUrl = new conwet.events.Event('legendUrlOutput');
         this.positionInfos = [];
 
         //this.locationSlot = new conwet.events.Slot('location_slot', this.setMarker.bind(this));
@@ -75,7 +75,7 @@ conwet.Gadget = Class.create({
         }.bind(this))
 
 
-        this.wmsServiceSlot = new conwet.events.Slot('wms_service_slot', function(service) {
+        this.wmsServiceSlot = new conwet.events.Slot('wmsInfoInput', function(service) {
             service = JSON.parse(service);
             if (typeof service == 'object') {
                 if (('type' in service) && ('url' in service) && ('name' in service) && (service.url != "")) {
@@ -176,7 +176,7 @@ conwet.Gadget = Class.create({
         this.mapManager.addWmtsService(wmtsService.name, wmtsService.url);
     },
     sendFeatureInfo: function(feature) {
-        this.featureInfoEvent.send(feature);
+        this.featureInfoEvent.send(JSON.stringify(feature));
     },
     sendPoisInfo: function(poisInfo) {
         this.visiblePoiListOutput.send(JSON.stringify(poisInfo));

@@ -21,10 +21,10 @@
     </Platform.StateProperties>
 
     <Platform.Wiring>
-        <InputEndpoint name="addressInput" type ="text" label="Address" friendcode="address" />
-        <InputEndpoint name="mapInfoInput" type="text" label="Map info"         friendcode="map_info"/>
-        <InputEndpoint name="wms_service_slot" type="text" label="WMS info"         friendcode="service_info"/>
-        <InputEndpoint name="poiInput"         type="text" label="Insert/Update PoI"         friendcode="poi"/>
+        <InputEndpoint name="mapInfoInput" type="text" label="Map info" friendcode="mapInfo"/>
+        <InputEndpoint name="addressInput" type ="text" label="Address" friendcode="address" />        
+        <InputEndpoint name="wmsInfoInput" type="text" label="WMS info" friendcode="serviceInfo"/>
+        <InputEndpoint name="poiInput"         type="text" label="Insert/Update PoI"    friendcode="poi"/>
         <InputEndpoint name="poiInputCenter"    type="text" label="Insert/Update Centered PoI"    friendcode="poi"/>
         <InputEndpoint name="deletePoiInput"    type="text" label="Delete PoI"    friendcode="poi"/>
         <InputEndpoint name="selectPoiInput"    type="text" label="Select PoI"    friendcode="poi"/>
@@ -43,11 +43,17 @@
             action_label="Map Viewer Details Steps Route"
             friendcode="detailStep"/>
 
-        <OutputEndpoint name="mapInfoOutput"     type="text" label="Map info"         friendcode="map_info"/>
+        <OutputEndpoint name="mapInfoOutput"     type="text" label="Map info"         friendcode="mapInfo"/>
         <OutputEndpoint name="visiblePoiListOutput"     type="text" label="Visible PoI List" friendcode="poi"/>
         <OutputEndpoint name="poiSelectedOutput"       type="text" label="PoI Selected"   friendcode="poi"/>
-        <OutputEndpoint name="feature_info_event" type="text" label="Feature info"     friendcode="feature_info"/>
-        <OutputEndpoint name="legend_url"         type="text" label="Url de leyenda"   friendcode="url"/>
+        <OutputEndpoint name="featureInfoOutput" type="text" label="Feature info"     friendcode="featureInfo"/>
+        <OutputEndpoint name="legendUrlOutput"         type="text" label="Legend URL"   friendcode="url"/>
+        <OutputEndpoint
+            name="routeDescriptionOutput"
+            type="text"
+            description="Route description step by step. It may be connected with Route Description widget."
+            label="Route Description"
+            friendcode="routeDescription"/>
 
     </Platform.Wiring>
 

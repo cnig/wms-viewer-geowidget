@@ -100,8 +100,8 @@ OpenLayers.Control.WMSQuery = OpenLayers.Class(OpenLayers.Control, {
         this.requested = 0;
         var numLayers = 0;
         var text = '';
-        var queryableLayers = [];
-        var contexts = [];
+        var queryableLayers = [];        
+        var contexts = {coordinates:position, features:[]};
 
 
         for (var i = 0; i < this.map.layers.length; i++) {
@@ -148,9 +148,8 @@ OpenLayers.Control.WMSQuery = OpenLayers.Class(OpenLayers.Control, {
             var layerInfo = serviceInfo.getLayer(layer.name);
 
             var context = {
-                service: serviceInfo.getName(),
+                service: layer.url.split('?')[0],
                 layer: layerInfo.getTitle(),
-                position: position,
                 self: this
             };
             var version = serviceInfo.getVersion();
@@ -195,8 +194,13 @@ OpenLayers.Control.WMSQuery = OpenLayers.Class(OpenLayers.Control, {
                 onSuccess: function(transport) {
                     this.text = transport.responseText;
                     this.self.requested++;
+                    var newContext = {
+                        service: this.service,
+                        layer: this.layer,
+                        text : this.text
+                    }
 
-                    contexts.push(this);
+                    contexts.features.push(newContext);
                     if (this.self.requested === queryableLayers.length)
                         this.self.setOutput(contexts);
 
@@ -224,10 +228,7 @@ OpenLayers.Control.WMSQuery = OpenLayers.Class(OpenLayers.Control, {
      */
     setOutput: function(features) {
 
-        for (var feature in features)
-            delete feature.self;
-
-        this.gadget.sendFeatureInfo(features);
+        this.mapManager.sendFeatureInfo(features);
     },
     CLASS_NAME: "OpenLayers.Control.WMSQuery"
 
