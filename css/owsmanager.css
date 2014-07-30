@@ -351,7 +351,9 @@
     z-index: 1000;
 }
 .marker_toolbar .marker_button:hover {
+    transition: 0.2s;
     box-shadow: 0 0 6px white;
+    opacity: 0.9;
 }
 
 .marker_toolbar .marker_button {
@@ -371,6 +373,7 @@
     background-repeat: no-repeat;
     background-position: 0 0;
     box-shadow: 1px 1px 2px;
+    opacity: 0.6;
 }
 
 .marker_toolbar .remove_all { 
@@ -403,12 +406,17 @@
 }
 
 /* WMS TOOLBAR CONTROL*/
+.olControlWMSToolbar:hover{  
+    transition: 0.2s;
+    opacity: 0.9;
+}
 
 .olControlWMSToolbar { 
     top: 5px;
     left: 5px;
     height: 30px;
     overflow: hidden;
+    opacity: 0.6;
 }
 
 .olControlWMSToolbar div:hover {

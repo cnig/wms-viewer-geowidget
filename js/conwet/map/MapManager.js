@@ -102,8 +102,12 @@ conwet.map.MapManager = Class.create({
         this.markerManager = new conwet.map.MarkerManager(this.map);
 
         // ZoomBar
-        this.zoomBar = new conwet.ui.ZoomBar(options);
-        this.zoomBar.setZoom(0);
+        //this.zoomBar = new conwet.ui.ZoomBar(options);
+        //this.zoomBar.setZoom(0);
+        this.plusButton     = $('zoom_plus');
+        this.minusButton    = $('zoom_minus');
+        this.plusButton.observe  ('click', this.zoomIn.bind(this));
+        this.minusButton.observe ('click', this.zoomOut.bind(this));
 
 
         // Map Events
@@ -122,20 +126,20 @@ conwet.map.MapManager = Class.create({
             changes.bounds = {upperLeftCorner:upperLeftCorner, lowerRightCorner:lowerRightCorner};
             var markers = this.markerManager.getMarkersInfo();
             this.sendMarkers(markers);
-            /*var center = this.transformer.normalize(this.map.getCenter());
+            var center = this.transformer.normalize(this.map.getCenter());
             var zoomLevel = this.map.getZoom();
 
             if (this.zoomLevel != zoomLevel) {
                 this.zoomLevel = zoomLevel;
-                var zoom = zoomLevel / this.getNumZoomLevels();
-                this.zoomBar.setZoom(zoom);
-                changes["zoom"] = zoom;
+                //var zoom = zoomLevel / this.getNumZoomLevels();
+                //this.zoomBar.setZoom(zoom);
+                //changes["zoom"] = zoom;
             }
 
             if (!conwet.map.ProjectionTransformer.compareLonlat(this.center, center)) {
                 this.center = center;
-                changes['center'] = center;
-            }*/
+                //changes['center'] = center;
+            }
 
             if (!this.gadget.reactingToWiring()) {
                 /*if (('zoom' in changes) || ('center' in changes)) {
