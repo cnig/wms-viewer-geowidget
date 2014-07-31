@@ -29,7 +29,7 @@ use("conwet.map");
 
 conwet.map.MarkerManager = Class.create({
     initialize: function(map) {
-        this.map = map;
+        this.map = map;        
 
         this.selectedMarker = null;
 
@@ -37,11 +37,25 @@ conwet.map.MarkerManager = Class.create({
         this.eventMarkers = new OpenLayers.Layer.Markers("Event markers");
         this.queryMarkers = new OpenLayers.Layer.Markers("Query markers");        
         this.boxesMarkers = new OpenLayers.Layer.Boxes("Boxes");
-        this.routesLayer = new OpenLayers.Layer.Vector("Routes")
+        
+        var blue = {strokeColor: '#0000ff',
+		  strokeOpacity: 0.5,
+		  strokeWidth: 5 };
+        
+        this.routesLayer = new OpenLayers.Layer.Vector("Routes", {style:blue});
+       
+        this.map.addLayer(this.routesLayer);
         this.map.addLayer(this.userMarkers);
         this.map.addLayer(this.eventMarkers);
         this.map.addLayer(this.queryMarkers);
         this.map.addLayer(this.boxesMarkers);
+        
+        
+        //Google maps directions service
+        this.directionsService = new google.maps.DirectionsService();
+        this.activeRoute = null;
+        this.currentStep = 0;
+        this.steps = null;
 
         this.lastUserMarker = 0;
         this.box = null;
@@ -289,6 +303,7 @@ conwet.map.MarkerManager = Class.create({
         this.clearPopups();
         this._updateToolbar();
         this.markers = {};
+        this.lastUserMarker = 0;
 
     },
     _removeTemporalMarkers: function() {
@@ -388,10 +403,14 @@ conwet.map.MarkerManager = Class.create({
             }
         }
         return visibleMarkers;
-    }
-    /*
+    },
+    drawRoute: function(route){ 
+        this.deleteActiveRoute();
+        this.createRouteFromMakers(route.from, route.to);
+    }, 
+     /*
      * This function creates a route given two ids from two existing markers in the map
-     *//*
+     */
     createRouteFromMakers: function(id1, id2){
         if (!this.markers[id1] || !this.markers[id2]){
             throw "IDs must identify two existing markers."
@@ -402,26 +421,76 @@ conwet.map.MarkerManager = Class.create({
         coords1 = this.transformer.normalize(coords1);
         coords2 = this.transformer.normalize(coords2);
         
-        if (route) {
-                var request = {
-                    origin: new google.maps.LatLng(route.from.lat, route.from.lng),
-                    destination: new google.maps.LatLng(route.to.lat, route.to.lng),
-                    travelMode: this.travelMode
-                };
-
-                this.directionsService.route(request, function (response, status) {
-                    if (status == google.maps.DirectionsStatus.OK) {
-                        this.directionsDisplay.setDirections(response);
-                        this.activeRoute.route = response.routes[0];
-                        if (this.activeRoute.stepInfoWindow) {
-                            this.activeRoute.stepInfoWindow.close();
-                        }
-                        MashupPlatform.wiring.pushEvent("routeDescriptionOutput", response.routes);
-                    }
-                }.bind(this));
         
+        var request = {
+            origin: new google.maps.LatLng(coords1.lat, coords1.lon),
+            destination:  new google.maps.LatLng(coords2.lat, coords2.lon),
+            travelMode: google.maps.DirectionsTravelMode.DRIVING
+        };
+        /* We make the request to Google API.
+         * This will return a JSON object route.*/
+         
+        this.directionsService.route(request, function (response, status) {
+            if (status == google.maps.DirectionsStatus.OK) {
+                var directionsResult = response.routes;
+                
+                this.activeRoute = directionsResult[0];                
+                
+                if (this.activeRoute.stepInfoWindow) {
+                    this.activeRoute.stepInfoWindow.close();
+                }
+                MashupPlatform.wiring.pushEvent("routeDescriptionOutput", JSON.stringify(directionsResult));
+                this.drawActiveRoute();
+            }
+        }.bind(this));        
+    },
+    /*
+     * This function draws the current route in the map
+     */        
+    drawActiveRoute: function(){
+        var steps = this.activeRoute.legs[0].steps;
+        var points = new Array();
+        for (var i = 0; i < steps.length; i++){
+            steps[i].startLonLat = new OpenLayers.LonLat(steps[i].start_location.B, steps[i].start_location.k);
+            
+            //Maybe useful in the future?
+            //steps.endLonLat = new OpenLayers.LonLat(steps.end_location.lng, steps.end_location.lat);
+            
+            //Useful to display the current step with stepRouteInput
+            steps[i].startLonLat = this.transformer.transform(steps[i].startLonLat);
+            
+            //We get the point in x and y coordinates to draw the route
+            //var point =  this.map.getPixelFromLonLat(steps[i].startLonLat)
+            var point = new OpenLayers.Geometry.Point(steps[i].startLonLat.lon, steps[i].startLonLat.lat);
+            points.push(point);
+        }
+        //We add the line to the routes layer
+        this.steps = steps;
+        var linestring = new OpenLayers.Geometry.LineString(points);
+        var vector = new OpenLayers.Feature.Vector(linestring);
+        this.routesLayer.addFeatures([vector]);        
+    },
+    deleteActiveRoute: function(){
+        this.activeRoute = null;
+        this.steps = null;        
+        this.routesLayer.removeAllFeatures();
+    },
+    
+    //This function draws a marker indicating the current step in the route
+    setStep: function(stepNum){
+        if (!this.activeRoute || !this.steps){
+            throw "A route must be provided in order to display its steps";
+        }
         
-        
-    }*/
+        //setMarker: function(id, icon, title, subtitle, lonlat, type, popup, center, onClick)        
+        //We will create a marker with the step information
+        var step = this.steps[stepNum];
+        if (!step){
+            throw "This step does not exist in the current route";
+        }
+        var instructions = step.instructions;
+        var type = OpenLayers.AdvancedMarker.QUERY_MARKER;
+        this.setMarker("step", null, "Step " + stepNum, instructions, step.startLonLat, type, true, false);
+    }
 
 });

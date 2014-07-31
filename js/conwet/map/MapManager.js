@@ -376,7 +376,12 @@ conwet.map.MapManager = Class.create({
         lonlat = this.transformer.normalize(lonlat);
         context.coordinates = {longitude: lonlat.lon, latitude: lonlat.lat};
         this.getGadget().sendFeatureInfo(context);
+    },
+    
+    drawRoute: function(route){        
+        this.markerManager.drawRoute(route);
+    },
+    setRouteStep: function(step){
+        this.markerManager.setStep(step);
     }
-
-
 });

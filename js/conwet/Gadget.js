@@ -30,11 +30,13 @@ use("conwet");
 conwet.Gadget = Class.create({
     initialize: function() {
         this.init = true;
+        
         this.poiSelectedOutput = new conwet.events.Event('poiSelectedOutput');
         this.visiblePoiListOutput = new conwet.events.Event('visiblePoiListOutput');
         this.featureInfoEvent = new conwet.events.Event('featureInfoOutput');
         this.gadgetInfoEvent = new conwet.events.Event('mapInfoOutput');
         this.legendUrl = new conwet.events.Event('legendUrlOutput');
+        this.routeDescriptionOutput = new conwet.events.Event('routeDescriptionOutput');
         this.positionInfos = [];
 
         //this.locationSlot = new conwet.events.Slot('location_slot', this.setMarker.bind(this));
@@ -72,8 +74,17 @@ conwet.Gadget = Class.create({
         this.addressInput = new conwet.events.Slot('addressInput', function(address){
             address = JSON.parse(address);
             this.addAddressPoi(address);
-        }.bind(this))
-
+        }.bind(this));
+        
+        this.routeInput = new conwet.events.Slot('routeInput', function(route){
+            route = JSON.parse(route);
+            this.drawRoute(route);
+        }.bind(this));
+        
+        this.routeStepInput = new conwet.events.Slot('routeStepInput', function(step){
+            step = JSON.parse(step);
+            this.setRouteStep(step);
+        }.bind(this));
 
         this.wmsServiceSlot = new conwet.events.Slot('wmsInfoInput', function(service) {
             service = JSON.parse(service);
@@ -266,8 +277,12 @@ conwet.Gadget = Class.create({
                 this.setInfoMarker(marker, false);
             }
         }.bind(this))
-    }
-    
-    
+    },
+    drawRoute: function(route){
+        this.mapManager.drawRoute(route);
+    },
+    setRouteStep: function(step){
+        this.mapManager.setRouteStep(step);
+    }  
 
 });
