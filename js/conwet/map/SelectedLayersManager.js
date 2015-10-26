@@ -578,10 +578,9 @@ conwet.map.SelectedLayersManager = Class.create({
         if (isWmsc) {
             this.map.maxExtent = layerInfo.getMaxExtent(projection);
             //this.map.maxExtent = layerInfo.getExtent(projection);
-        } else
+        } else {
             this.map.maxExtent = layerInfo.getExtent(projection);
-        console.dir(layerInfo);
-        console.log(this.map.maxExtent);
+        }
 
         if (this.mapManager != null)
             this.mapManager.updateMarkers(this.map.projection, projection);
