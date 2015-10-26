@@ -112,7 +112,7 @@ conwet.map.SelectedLayersManager = Class.create({
                 layerInfo = new conwet.map.GoogleLayer(layer);
             }
             else {
-                var service = this.wmsManager.getService(layer.url);
+                var service = this.wmsManager.getService(layer.real_url);
                 layerInfo = service.getLayer(layer.name);
             }
 
@@ -198,7 +198,7 @@ conwet.map.SelectedLayersManager = Class.create({
                 $(dropButton).addClassName('drop');
                 dropButton.observe("click", function(e) {
                     var index = this.map.getLayerIndex(layerObj.layer);
-                    this.owsManager.deleteLayer(isBaseLayer, layerObj.layer.url);
+                    this.owsManager.deleteLayer(isBaseLayer, layerObj.layer.real_url);
                     this._dropLayerObj(layerObj, isBaseLayer);
                     if (isBaseLayer && (!layerObj.layerElement.hasClassName("deselected_baselayer"))) {
                         this.selectPreviousLayer();
@@ -637,7 +637,7 @@ conwet.map.SelectedLayersManager = Class.create({
         var layer = layerObj.layer;
 
         if (layer.CLASS_NAME != "OpenLayers.Layer.OSM" && layer.CLASS_NAME != "OpenLayers.Layer.Google") {
-            var service = this.wmsManager.getService(layer.url);
+            var service = this.wmsManager.getService(layer.real_url);
             table.appendChild(this._createTableRow(_("Service"), document.createTextNode(service.getTitle())));
         }
 
@@ -718,6 +718,8 @@ conwet.map.SelectedLayersManager = Class.create({
         return tr;
     },
     createLayer: function(url, layer, projection, imageType, isBaseLayer, init, last, type) {
+        var service_url, layer;
+
         if (url.indexOf('?') == -1) {
             url = url + '?';
         } else {
@@ -725,14 +727,21 @@ conwet.map.SelectedLayersManager = Class.create({
                 url = url.slice(0, -1);
         }
 
+        service_url = new URL(url);
+        if (document.location.protocol === 'https:' && service_url.protocol !== 'https:') {
+            service_url = MashupPlatform.http.buildProxyURL(service_url.href);
+        } else {
+            service_url = url;
+        }
+
         if (type == "wms") {
-            this.addLayer(new OpenLayers.Layer.WMS(layer.layer.name, url, {
+            layer = new OpenLayers.Layer.WMS(layer.layer.name, service_url, {
                 layers: layer.layer.name,
                 format: imageType,
                 TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
                 //EXCEPTIONS: 'application/vnd.ogc.se_inimage',
                 projection: new OpenLayers.Projection(projection),
-            }), projection, isBaseLayer, init, last);
+            });
 
         } else if (type == "wmsc") {
             var resolutions;
@@ -743,7 +752,7 @@ conwet.map.SelectedLayersManager = Class.create({
                 layer.resolutions = $H(layer.resolutions);
                 resolutions = layer.resolutions.get(projection + imageType);
             }
-            this.addLayer(new OpenLayers.Layer.WMS(layer.layer.name, url, {
+            layer = new OpenLayers.Layer.WMS(layer.layer.name, service_url, {
                 layers: layer.layer.name,
                 format: imageType,
                 TRANSPARENT: ("" + !isBaseLayer).toUpperCase(),
@@ -753,9 +762,9 @@ conwet.map.SelectedLayersManager = Class.create({
                 resolutions: resolutions,
                 isBaseLayer: isBaseLayer,
                 tiled: true
-            }), projection, isBaseLayer, init, last);
+            });
         } else if (type == "wmts") {
-            this.addLayer(new OpenLayers.Layer.WMTS({
+            layer = new OpenLayers.Layer.WMTS({
                 url: url,
                 layer: layer.layer.identifier,
                 name: layer.layer.identifier,
@@ -767,10 +776,11 @@ conwet.map.SelectedLayersManager = Class.create({
                 matrixIds: layer.tileMatrixSets[projection].matrixIds,
                 matrixSet: projection,
                 style: "default"
-
-            }), projection, isBaseLayer, init, last);
+            });
         }
 
+        layer.real_url = url;
+        this.addLayer(layer, projection, isBaseLayer, init, last);
     },
     _loadState: function() {
         if (this.state.baseLayer != null) {
@@ -865,11 +875,11 @@ conwet.map.SelectedLayersManager = Class.create({
 
         for (var i = 0; i < this.overlays.length; i++) {
 
-            if (this.overlays[i].layer.url === url) {
+            if (this.overlays[i].layer.real_url === url) {
                 layerObj = this.overlays[i];
                 this.map.removeLayer(this.overlays[i].layer);
                 this._dropLayerObj(this.overlays[i], false);
-                this.owsManager.deleteLayer(false, layerObj.layer.url);
+                this.owsManager.deleteLayer(false, layerObj.layer.real_url);
                 i--;
 
             }
@@ -877,12 +887,12 @@ conwet.map.SelectedLayersManager = Class.create({
 
         for (var i = 0; i < this.baseLayers.length; i++) {
 
-            if (this.baseLayers[i].layer.url === url) {
+            if (this.baseLayers[i].layer.real_url === url) {
 
                 layerObj = this.baseLayers[i];
                 this.map.removeLayer(this.baseLayers[i].layer);
                 this._dropLayerObj(this.baseLayers[i], true);
-                this.owsManager.deleteLayer(true, layerObj.layer.url);
+                this.owsManager.deleteLayer(true, layerObj.layer.real_url);
                 if (!layerObj.layerElement.hasClassName("deselected_baselayer")) {
                     this._changeBaseLayer(this.baseLayers[0]);
                     this._zoomToLayerExtent(this.baseLayers[0].layerInfo);
