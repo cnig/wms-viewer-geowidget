@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='UTF-8'?>
+
+<widget xmlns="http://wirecloud.conwet.fi.upm.es/ns/macdescription/1" vendor="CoNWeT" name="wms-viewer-geowidget" version="0.5.7">
+
+  <details>
+
+    <title>Web Map Service</title>
+
+    <email>billescas@conwet.com</email>
+
+    <image>img/wms_widget.png</image>
+
+    <smartphoneimage>img/wms_widget.png</smartphoneimage>
+
+    <description> This widget gives users the ability to handle different map layers coming from several sources, showing all of them on the same map. It has a bunch of both events and slots that enables the user to have different instances of this widget wired, so she can compare with different cartographies at a glance. Is compatible with WMS, WMTS and WMS-C.</description>
+
+    <doc>http://hercules.ls.fi.upm.es/public/conwet/ogf.html#wms-widget</doc>
+    <longdescription>DESCRIPTION.md</longdescription>
+    <changelog>doc/changelog.md</changelog>
+
+    <authors>billescas</authors>
+
+  </details>
+
+  <persistentvariables>
+
+    <variable name="services" type="text" label="Services"/>
+
+    <variable name="state" type="text" label="State"/>
+
+    <variable name="layersData" type="text" label="State"/>
+
+  </persistentvariables>
+
+  <wiring>
+
+    <outputendpoint name="mapInfoOutput" type="text" label="Map info" friendcode="mapInfo"/>
+
+    <outputendpoint name="visiblePoiListOutput" type="text" label="Visible PoI List" friendcode="poi"/>
+
+    <outputendpoint name="poiSelectedOutput" type="text" label="PoI Selected" friendcode="poi"/>
+
+    <outputendpoint name="featureInfoOutput" type="text" label="Feature info" friendcode="featureInfo"/>
+
+    <outputendpoint name="legendUrlOutput" type="text" label="Legend URL" friendcode="url"/>
+
+    <outputendpoint name="routeDescriptionOutput" type="text" label="Route Description" description="Route description step by step. It may be connected with Route Description widget." friendcode="routeDescription"/>
+
+    <inputendpoint name="mapInfoInput" type="text" label="Map info" friendcode="mapInfo"/>
+
+    <inputendpoint name="addressInput" type="text" label="Address" friendcode="address"/>
+
+    <inputendpoint name="wmsInfoInput" type="text" label="WMS info" friendcode="serviceInfo"/>
+
+    <inputendpoint name="poiInput" type="text" label="Insert/Update PoI" friendcode="poi"/>
+
+    <inputendpoint name="poiInputCenter" type="text" label="Insert/Update Centered PoI" friendcode="poi"/>
+
+    <inputendpoint name="deletePoiInput" type="text" label="Delete PoI" friendcode="poi"/>
+
+    <inputendpoint name="selectPoiInput" type="text" label="Select PoI" friendcode="poi"/>
+
+    <inputendpoint name="routeInput" type="text" label="Route" description="Google Maps route to be displayed on the map." actionlabel="Map Viewer Route" friendcode="route"/>
+
+    <inputendpoint name="routeStepInput" type="text" label="Route Step" description="Detailed Step of a route. It may be connected with Route Description widget." actionlabel="Map Viewer Details Steps Route" friendcode="detailStep"/>
+
+  </wiring>
+
+  <contents src="index.html"/>
+
+  <rendering height="28" width="8"/>
+
+</widget>
