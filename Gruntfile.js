@@ -26,24 +26,6 @@ module.exports = function (grunt) {
             }
         },
 
-        eslint: {
-            widget: {
-                src: 'src/js/**/*.js'
-            },
-            grunt: {
-                options: {
-                    configFile: '.eslintrc-node'
-                },
-                src: 'Gruntfile.js',
-            },
-            test: {
-                options: {
-                    configFile: '.eslintrc-jasmine'
-                },
-                src: ['src/test/**/*.js', '!src/test/fixtures/']
-            }
-        },
-
         copy: {
             main: {
                 files: [
@@ -158,7 +140,6 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-wirecloud');
     grunt.loadNpmTasks('grunt-bower-task');
     grunt.loadNpmTasks('grunt-contrib-jasmine'); // when test?
-    grunt.loadNpmTasks('gruntify-eslint');
     grunt.loadNpmTasks('grunt-contrib-compress');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-clean');
@@ -167,7 +148,6 @@ module.exports = function (grunt) {
 
     grunt.registerTask('test', [
         'bower:install',
-        //'eslint',
         //'jasmine:coverage'
     ]);
 
